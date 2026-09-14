@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>Lavandería Marcos</title>
-<!-- VERSION: LAV-2026-09-13-C -->
+<title>LavaExpressCanarias</title>
+<!-- VERSION: LAV-2026-09-13-D -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .btn-red{background:linear-gradient(135deg,var(--red),#dc2626);color:#fff;}
 .btn-purple{background:linear-gradient(135deg,var(--purple),#7c3aed);color:#fff;}
 .btn-sm{padding:6px 12px;font-size:12px;} .btn-block{width:100%;padding:14px;font-size:16px;}
-.input,.textarea,select.input{width:100%;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--t1);font-size:14px;}
+.input,.textarea,select.input{width:100%;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--t1);font-size:14px;margin-bottom:10px;}
 .input:focus,.textarea:focus,select.input:focus{outline:none;border-color:var(--gold);}
 .textarea{resize:vertical;min-height:60px;}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;}
@@ -120,7 +120,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
   <div id="loginModal" class="modal-overlay hidden">
     <div class="modal-content">
       <h3 style="margin-bottom:8px;">🔐 Acceso Administrador</h3>
-      <input class="input" id="loginUser" placeholder="Usuario" style="margin-bottom:10px;"/>
+      <input class="input" id="loginUser" placeholder="Usuario"/>
       <input class="input" id="loginPass" type="password" placeholder="Contraseña"/>
       <div id="loginErr" style="color:var(--red);font-size:13px;margin-top:8px;min-height:20px;"></div>
       <div style="display:flex;gap:10px;margin-top:16px;">
@@ -148,7 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 C</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 D</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -164,6 +164,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       </div>
       <div id="facturasList" style="margin-top:12px;"></div>
       <button class="btn btn-grey btn-sm" style="margin-top:12px;" onclick="cambiarPasswordAdmin()">🔑 Cambiar contraseña</button>
+    </div>
+
+    <div class="card">
+      <h3>🏢 Datos de la empresa</h3>
+      <input class="input" id="empNombre" placeholder="Nombre fiscal"/>
+      <input class="input" id="empNif" placeholder="NIF/CIF"/>
+      <input class="input" id="empDireccion" placeholder="Dirección"/>
+      <input class="input" id="empCuenta" placeholder="Cuenta bancaria"/>
+      <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
+      <div class="otime" style="margin-top:8px;">Estos datos aparecen en la cabecera y el pie de las facturas PDF.</div>
     </div>
 
     <div class="card">
@@ -187,6 +197,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div class="otime" style="margin-bottom:10px;">Lee las columnas que encuentre. Lo que falte se completa con ✏️. Cada cliente tiene su QR.</div>
       <div id="clientesList"></div>
       <div id="qrClientesPreview" class="hidden"></div>
+    </div>
+
+    <div class="card">
+      <h3>🗑️ Reset de datos de prueba</h3>
+      <div class="otime" style="margin-bottom:10px;">Borra servicios, facturas, facturas mensuales y contadores de numeración. <b>Conserva</b> clientes, datos de empresa y acceso de administrador.</div>
+      <button class="btn btn-red" onclick="resetDatos()">🗑️ Borrar datos de prueba</button>
     </div>
   </section>
 
@@ -238,6 +254,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
     <h3 id="clienteModalTitle" style="margin-bottom:12px;">Cliente</h3>
     <input type="hidden" id="clId"/>
     <input class="input" id="clNombre" placeholder="Nombre / Razón social *"/>
+    <input class="input" id="clNif" placeholder="NIF/CIF"/>
     <input class="input" id="clContacto" placeholder="Persona de contacto"/>
     <input class="input" id="clTelefono" placeholder="Teléfono"/>
     <input class="input" id="clEmail" placeholder="Email"/>
@@ -278,13 +295,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 var firebaseConfig={apiKey:"AIzaSyCkorGh_Y_kc2S6WV9G-cqieUXg9OovDHo",authDomain:"lavanderiamarcos-2eac4.firebaseapp.com",databaseURL:"https://lavanderiamarcos-2eac4-default-rtdb.europe-west1.firebasedatabase.app",projectId:"lavanderiamarcos-2eac4",storageBucket:"lavanderiamarcos-2eac4.firebasestorage.app",messagingSenderId:"261213169563",appId:"1:261213169563:web:d35ed5c53cc643762b233e"};
 var db=null,firebaseReady=false,wasDisconnected=false;
 
+// Datos de empresa (por defecto; editables en Admin y guardados en Firebase)
+var empresa={
+  nombre:'LavaExpressCanarias, S.L.U.',
+  nif:'B23904170',
+  direccion:'Calle La Berlina 32, El Sobradillo, Santa Cruz de Tenerife, 38107',
+  cuenta:'ES36 2100 4178 4322 0019 5510 (la Caixa)'
+};
+
 function debugLog(m,t){t=t||'info';console.log('['+t.toUpperCase()+'] '+m);var p=document.getElementById('debugPanel');if(p&&!p.classList.contains('hidden')){var l=document.createElement('div');l.className='debug-line '+t;l.textContent='['+new Date().toLocaleTimeString()+'] '+m;p.appendChild(l);p.scrollTop=p.scrollHeight;}}
 function toggleDebug(){var p=document.getElementById('debugPanel');if(p)p.classList.toggle('hidden');}
 function hashPassword(pw){var h=5381;for(var i=0;i<pw.length;i++){h=((h<<5)+h)+pw.charCodeAt(i);h=h&0x7fffffff;}return'h'+h.toString(36);}
 function syncFail(msg){var b=document.getElementById('syncError');if(!b)return;b.classList.remove('hidden');b.textContent='⚠️ Error de sincronización: '+msg;debugLog('Sync fail: '+msg,'error');}
 function clearSyncFail(){var b=document.getElementById('syncError');if(b)b.classList.add('hidden');}
-
-// IGIC 7%
 function igicOf(base){return Math.round((base||0)*0.07*100)/100;}
 function totalConIGIC(base){var b=base||0;return Math.round((b+igicOf(b))*100)/100;}
 
@@ -327,7 +350,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-C';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-D';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -366,6 +389,25 @@ function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña
     var n=prompt('Nueva (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
     db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
 
+// ============ EMPRESA ============
+function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
+  a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
+  document.getElementById('empDireccion').value=empresa.direccion||'';document.getElementById('empCuenta').value=empresa.cuenta||'';}
+function saveEmpresa(){if(!requireFB())return;
+  var data={nombre:document.getElementById('empNombre').value.trim(),nif:document.getElementById('empNif').value.trim(),direccion:document.getElementById('empDireccion').value.trim(),cuenta:document.getElementById('empCuenta').value.trim()};
+  db.ref('config/empresa').set(data).then(function(){showToast('✅ Datos de empresa guardados','success');});}
+
+// ============ RESET ============
+function resetDatos(){if(!requireFB())return;
+  if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores de numeración.\nLos clientes, los datos de empresa y el acceso de admin se CONSERVAN.\n¿Continuar?'))return;
+  var tec=prompt('Escribe BORRAR para confirmar el reset:');
+  if(tec!=='BORRAR'){showToast('❌ Reset cancelado','error');return;}
+  var ops=['servicios','facturas','facturasMensuales','syncProbe'].map(function(r){return db.ref(r).remove();});
+  ops.push(db.ref('config/contadorFactura').remove());
+  ops.push(db.ref('config/contadorFacturaMensual').remove());
+  Promise.all(ops).then(function(){knownState={};initialLoaded=false;showToast('✅ Datos de prueba borrados','success');renderAll();})
+    .catch(function(e){showToast('❌ Error en reset: '+e.message,'error');});}
+
 function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo);if(!c)return;clienteNombre=c.nombre||'';
   var tag=document.getElementById('clienteTag'),txt=document.getElementById('clienteTagText');if(tag&&txt){tag.style.display='inline-flex';txt.textContent=clienteNombre;}}
 
@@ -381,7 +423,7 @@ function applyRole(){var mp=document.getElementById('menuPanel'),sp=document.get
 
 function renderAll(){
   if(isStaff()){detectChanges();renderStaffServicios();renderStats();var pt=document.getElementById('permTxt');if(pt)pt.textContent=permText();}
-  if(role==='admin'){renderContab();renderFacturas();renderClientes();renderAdminFM();}
+  if(role==='admin'){renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();}
   if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();}
   updateSyncInfo();}
 function renderStats(){var e1=document.getElementById('stSol'),e2=document.getElementById('stRec'),e3=document.getElementById('stPes'),e4=document.getElementById('stCli');
@@ -442,6 +484,7 @@ function importClientes(input){var f=input.files&&input.files[0];if(!f){showToas
     if(rows.length<2){showToast('⚠️ El Excel no tiene filas de datos','error');return;}
     var h=rows[0];
     var iNom=colIdx(h,['nombre','cliente','client','razon','hotel','establecimiento','name']);
+    var iNif=colIdx(h,['nif','cif','dni']);
     var iCon=colIdx(h,['contacto','persona','responsable']);
     var iTel=colIdx(h,['telefono','teléfon','phone','movil','móvil']);
     var iMail=colIdx(h,['email','mail','correo']);
@@ -452,9 +495,10 @@ function importClientes(input){var f=input.files&&input.files[0];if(!f){showToas
     for(var r=1;r<rows.length;r++){(function(row){
       function cell(i){return(i>=0&&row[i]!=null)?String(row[i]).trim():'';}
       var nombre=iNom>=0?cell(iNom):cell(0);
+      var nif=iNif>=0?cell(iNif):'';
       var contacto=cell(iCon),tel=cell(iTel),mail=cell(iMail),dir=cell(iDir),pre=cell(iPre),not=cell(iNot);
       if(!nombre&&!contacto&&!tel&&!mail){omitidos++;return;}
-      pending.push({nombre:nombre||contacto||'Sin nombre',contacto:contacto,telefono:tel,email:mail,direccion:dir,precioKilo:parseFloat(String(pre).replace(',','.'))||0,notas:not,activo:true,origen:'import',createdAtLocal:nowLocal()});
+      pending.push({nombre:nombre||contacto||'Sin nombre',nif:nif,contacto:contacto,telefono:tel,email:mail,direccion:dir,precioKilo:parseFloat(String(pre).replace(',','.'))||0,notas:not,activo:true,origen:'import',createdAtLocal:nowLocal()});
     })(rows[r]);}
     if(!pending.length){showToast('⚠️ No se encontraron clientes válidos','error');return;}
     var updates={};pending.forEach(function(c){updates[newId()]=c;});
@@ -466,6 +510,7 @@ function openClienteModal(id){var m=document.getElementById('clienteModal');var 
   document.getElementById('clienteModalTitle').textContent=c?'✏️ Editar cliente':'➕ Nuevo cliente';
   document.getElementById('clId').value=c?c.id:'';
   document.getElementById('clNombre').value=c?c.nombre||'':'';
+  document.getElementById('clNif').value=c?c.nif||'':'';
   document.getElementById('clContacto').value=c?c.contacto||'':'';
   document.getElementById('clTelefono').value=c?c.telefono||'':'';
   document.getElementById('clEmail').value=c?c.email||'':'';
@@ -475,7 +520,7 @@ function openClienteModal(id){var m=document.getElementById('clienteModal');var 
   m.classList.remove('hidden');}
 function cerrarClienteModal(){document.getElementById('clienteModal').classList.add('hidden');}
 function saveCliente(){if(!requireFB())return;var id=document.getElementById('clId').value;
-  var data={nombre:document.getElementById('clNombre').value.trim(),contacto:document.getElementById('clContacto').value.trim(),telefono:document.getElementById('clTelefono').value.trim(),email:document.getElementById('clEmail').value.trim(),direccion:document.getElementById('clDireccion').value.trim(),precioKilo:parseFloat(document.getElementById('clPrecio').value)||0,notas:document.getElementById('clNotas').value.trim(),activo:true,updatedAtLocal:nowLocal()};
+  var data={nombre:document.getElementById('clNombre').value.trim(),nif:document.getElementById('clNif').value.trim(),contacto:document.getElementById('clContacto').value.trim(),telefono:document.getElementById('clTelefono').value.trim(),email:document.getElementById('clEmail').value.trim(),direccion:document.getElementById('clDireccion').value.trim(),precioKilo:parseFloat(document.getElementById('clPrecio').value)||0,notas:document.getElementById('clNotas').value.trim(),activo:true,updatedAtLocal:nowLocal()};
   if(!data.nombre){showToast('⚠️ El nombre es obligatorio','error');return;}
   if(id){db.ref('clientes/'+id).update(data).then(function(){cerrarClienteModal();showToast('✅ Cliente actualizado','success');});}
   else{data.createdAtLocal=nowLocal();data.origen='manual';db.ref('clientes/'+newId()).set(data).then(function(){cerrarClienteModal();showToast('✅ Cliente creado','success');});}}
@@ -484,7 +529,7 @@ function renderClientes(){var b=document.getElementById('clientesList');if(!b)re
   if(!clientes.length){b.innerHTML='<div class="empty">Sin clientes. Importa un Excel o crea uno a mano.</div>';return;}
   b.innerHTML=clientes.slice().sort(function(a,b2){return String(a.nombre||'').localeCompare(String(b2.nombre||''));}).map(function(c){
     var sub=[c.contacto,c.telefono,c.email,c.direccion].filter(Boolean).join(' · ');
-    return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
+    return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.nif?' <span class="otime">· NIF '+esc(c.nif)+'</span>':'')+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
     '<div style="display:flex;gap:6px;"><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');}
 
 function urlQRCliente(id){return location.origin+location.pathname+'?vista=cliente&cliente='+encodeURIComponent(id);}
@@ -539,88 +584,19 @@ function generarPDFMensual(clientId,ym){
   ensureFacturaMensual(clientId,ym,function(rec){buildPDF(c,ym,lines,rec);});}
 function buildPDF(c,ym,lines,rec){
   var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
-  doc.setFontSize(16);doc.text('LAVANDERÍA MARCOS',14,18);
-  doc.setFontSize(11);doc.text('Factura mensual de servicios',14,25);
+  doc.setFontSize(14);doc.text(empresa.nombre||'LAVANDERÍA MARCOS',14,18);
+  doc.setFontSize(9);
+  doc.text('NIF: '+(empresa.nif||''),14,24);
+  doc.text(empresa.direccion||'',14,29);
+  doc.setFontSize(11);doc.text('Factura mensual de servicios',14,38);
   doc.setFontSize(10);
-  doc.text('Nº factura: '+rec.numero,14,33);
-  doc.text('Periodo: '+monthLabel(ym),14,39);
-  doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,45);
-  doc.text('Cliente: '+(c.nombre||''),14,53);
-  if(c.direccion)doc.text('Dirección: '+c.direccion,14,59);
-  if(c.contacto)doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,65);
+  doc.text('Nº factura: '+rec.numero,14,46);
+  doc.text('Periodo: '+monthLabel(ym),14,52);
+  doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);
+  doc.text('Cliente: '+(c.nombre||''),14,66);
+  var cy=72;
+  if(c.nif){doc.text('NIF/CIF: '+c.nif,14,cy);cy+=6;}
+  if(c.direccion){doc.text('Dirección: '+c.direccion,14,cy);cy+=6;}
+  if(c.contacto){doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,cy);cy+=6;}
   var body=lines.map(function(s){var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
-    return[new Date(s.createdAtLocal).toLocaleDateString('es-ES'),(s.facturaId||''),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2)];});
-  var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
-  var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
-  doc.autoTable({startY:72,
-    head:[['Fecha','Nº serv.','Kg','€/Kg','Base €','Material €','Subtotal €']],
-    body:body,
-    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2)]],
-    styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]}
-  });
-  var fy=doc.lastAutoTable.finalY+8;
-  doc.setFontSize(10);
-  doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,fy);
-  doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,fy+6);
-  doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,fy+14);
-  doc.setFontSize(8);doc.text('Documento generado automáticamente por Lavandería Marcos.',14,fy+22);
-  doc.save('Factura_'+rec.numero+'.pdf');
-  showToast('✅ PDF descargado: '+rec.numero,'success');}
-
-var pesarServicioId=null;
-function abrirPesarModal(id){pesarServicioId=id;
-  document.getElementById('pesarKg').value='';document.getElementById('pesarMatDesc').value='';document.getElementById('pesarMatImp').value='';
-  document.getElementById('pesarModal').classList.remove('hidden');updatePesarPreview();}
-function cerrarPesarModal(){document.getElementById('pesarModal').classList.add('hidden');pesarServicioId=null;}
-function updatePesarPreview(){var el=document.getElementById('pesarPreview');if(!el||!pesarServicioId)return;
-  var s=null;servicios.forEach(function(x){if(x.id===pesarServicioId)s=x;});if(!s)return;
-  var kg=parseFloat(document.getElementById('pesarKg').value)||0;
-  var mat=parseFloat(document.getElementById('pesarMatImp').value)||0;
-  var base=kg*(Number(s.precioKilo)||0);var tot=base+mat;
-  el.textContent=kg+' kg × '+fp(s.precioKilo||0)+' = '+fp(base)+(mat?' + material '+fp(mat):'')+'  →  TOTAL '+fp(tot);}
-function confirmarPesaje(){if(!requireFB()||!pesarServicioId)return;
-  var kg=parseFloat(document.getElementById('pesarKg').value);
-  var matDesc=document.getElementById('pesarMatDesc').value.trim();
-  var matImp=parseFloat(document.getElementById('pesarMatImp').value)||0;
-  if(!kg||kg<=0){showToast('⚠️ Kilos no válidos','error');return;}
-  var s=null;servicios.forEach(function(x){if(x.id===pesarServicioId)s=x;});if(!s)return;
-  var base=kg*(Number(s.precioKilo)||0);var total=base+matImp;var now=new Date();
-  nextNumeroFactura(function(num){
-    db.ref('facturas/'+newId()).set({numero:num,fecha:now.toISOString().slice(0,10),hora:now.toTimeString().slice(0,5),timestamp:now.getTime(),clienteId:s.clienteId,clienteNombre:s.clienteNombre,kg:kg,precioKilo:s.precioKilo,base:Math.round(base*100)/100,materialImporte:matImp,materialDesc:matDesc,total:Math.round(total*100)/100})
-      .then(function(){return db.ref('servicios/'+pesarServicioId).update({estado:'PESADO',kg:kg,importeMaterial:matImp,materialEspecial:matDesc,total:Math.round(total*100)/100,updatedAtLocal:nowLocal(),facturaId:num});})
-      .then(function(){cerrarPesarModal();showToast('✅ '+num+': '+fp(total),'success');});});}
-
-function solicitarRecogida(){if(!requireFB())return;
-  var nota=prompt('Describe la ropa a lavar (sábanas, toallas, mantelería...) o notas:');
-  if(nota===null)return;
-  var c=clientById(clienteIdFijo);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
-  var id=newId();
-  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,importeMaterial:0,materialEspecial:'',total:0,createdAtLocal:nowLocal(),updatedAtLocal:nowLocal()})
-    .then(function(){showToast('✅ Solicitud enviada','success');});}
-
-function cambiarEstado(id,est){if(!puedeCambiar(est)){showToast('⚠️ Tu rol no puede hacer eso','error');return;}if(!requireFB())return;
-  db.ref('servicios/'+id).update({estado:est,updatedAtLocal:nowLocal()}).then(function(){showToast('✅ '+stLabel(est),'success');});}
-
-function forceRefresh(){if(!requireFB())return;db.ref('servicios').once('value').then(function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});renderAll();showToast('✅ Actualizado','success');});}
-
-function exportarExcel(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}if(!facturas.length){showToast('⚠️ Sin facturas','error');return;}
-  var data=facturas.slice().sort(function(a,b){return(a.timestamp||0)-(b.timestamp||0);}).map(function(f){
-    return{'Nº Factura':f.numero||'','Fecha':f.fecha,'Hora':f.hora,'Cliente':f.clienteNombre,'Kg':f.kg,'Precio/kg':f.precioKilo,'Base (€)':f.base,'Material (€)':f.materialImporte||0,'Material':f.materialDesc||'','Total base (€)':f.total,'IGIC (7%)':igicOf(f.total),'Total con IGIC (€)':totalConIGIC(f.total)};});
-  var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Facturas');
-  XLSX.writeFile(wb,'facturas_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
-
-function subscribeAll(){if(!firebaseReady||!db)return;
-  db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
-    if(role==='admin')renderClientes();if(role==='cliente')resolveClient();});
-  db.ref('servicios').on('value',function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
-    clientServicios=servicios.filter(function(o){return o.clienteId===clienteIdFijo;});renderAll();});
-  db.ref('facturas').on('value',function(s){var d=s.val()||{};facturas=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});facturas.sort(function(a,b){return(b.timestamp||0)-(a.timestamp||0);});if(role==='admin'){renderContab();renderFacturas();}});
-  listenProbe();}
-
-setInterval(function(){if(isStaff())renderStaffServicios();},30000);
-
-function boot(){applyRole();if(initFirebase()){subscribeAll();}}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-</script>
-</body>
-</html>
+    return[new Date(s.createdAtLocal).toLocaleDateString('es-ES'),(s.facturaId||''),(s.kg||0),(Number(s.precioKilo)||0).toFixed(
