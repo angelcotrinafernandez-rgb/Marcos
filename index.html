@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias</title>
-<!-- VERSION: LAV-2026-09-13-E -->
+<!-- VERSION: LAV-2026-09-13-F -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -148,7 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 E</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 F</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -194,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
         <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
       </div>
-      <div class="otime" style="margin-bottom:10px;">Detecta automáticamente la fila de cabeceras y reconoce muchas variantes de nombre de columna. Lo que falte se completa con ✏️.</div>
+      <div class="otime" style="margin-bottom:10px;">Detecta automáticamente la fila de cabeceras y reconoce muchas variantes de nombre de columna, incluido "Nombre comercial".</div>
       <div id="clientesList"></div>
       <div id="qrClientesPreview" class="hidden"></div>
     </div>
@@ -254,6 +254,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
     <h3 id="clienteModalTitle" style="margin-bottom:12px;">Cliente</h3>
     <input type="hidden" id="clId"/>
     <input class="input" id="clNombre" placeholder="Nombre / Razón social *"/>
+    <input class="input" id="clNombreComercial" placeholder="Nombre comercial"/>
     <input class="input" id="clNif" placeholder="NIF/CIF"/>
     <input class="input" id="clContacto" placeholder="Persona de contacto"/>
     <input class="input" id="clTelefono" placeholder="Teléfono"/>
@@ -310,7 +311,6 @@ function clearSyncFail(){var b=document.getElementById('syncError');if(b)b.class
 function igicOf(base){return Math.round((base||0)*0.07*100)/100;}
 function totalConIGIC(base){var b=base||0;return Math.round((b+igicOf(b))*100)/100;}
 
-// QR: carga fiable con respaldo
 var qrTried=false;
 function ensureQR(cb){
   if(typeof QRCode!=='undefined'){cb(true);return;}
@@ -362,7 +362,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-E';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-F';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -418,7 +418,8 @@ function resetDatos(){if(!requireFB())return;
   Promise.all(ops).then(function(){knownState={};initialLoaded=false;showToast('✅ Datos de prueba borrados','success');renderAll();})
     .catch(function(e){showToast('❌ Error en reset: '+e.message,'error');});}
 
-function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo);if(!c)return;clienteNombre=c.nombre||'';
+function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo);if(!c)return;
+  clienteNombre=c.nombreComercial||c.nombre||'';
   var tag=document.getElementById('clienteTag'),txt=document.getElementById('clienteTagText');if(tag&&txt){tag.style.display='inline-flex';txt.textContent=clienteNombre;}}
 
 function applyRole(){var mp=document.getElementById('menuPanel'),sp=document.getElementById('staffPanel'),ap=document.getElementById('adminPanel'),cp=document.getElementById('clientPanel'),bs=document.getElementById('btnSalir'),rb=document.getElementById('roleBadge');
@@ -474,7 +475,7 @@ function renderFacturas(){var b=document.getElementById('facturasList');if(!b)re
 
 function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes');if(!selC||!selM)return;
   var curC=selC.value,curM=selM.value;
-  selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombre||'')+'</option>';}).join('');
+  selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
   var set={};set[ymOf(Date.now())]=1;
   servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)set[ymOf(s.createdAtLocal)]=1;});
   var months=Object.keys(set).sort().reverse();
@@ -484,11 +485,11 @@ function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=docu
 function adminGenerarFM(){var c=document.getElementById('fmCliente').value,m=document.getElementById('fmMes').value;
   if(!c||!m){showToast('⚠️ Elige cliente y mes','error');return;}generarPDFMensual(c,m);}
 
-// ============ IMPORT EXCEL TOLERANTE ============
 function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
 function escRe(k){return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 function matchField(h,keys){for(var k=0;k<keys.length;k++){var key=keys[k];if(h===key)return true;if(new RegExp('(^|[^a-z0-9])'+escRe(key)).test(h))return true;}return false;}
 var COLKEYS={
+  nombrecomercial:['nombrecomercial','nombre comercial','comercial','denominacion','trading'],
   nombre:['nombre','cliente','client','razonsocial','razon social','hotel','establecimiento','name','empresa'],
   nif:['nif','cif','dni','nifcif','identificacion'],
   contacto:['contacto','persona','responsable','contact'],
@@ -498,6 +499,7 @@ var COLKEYS={
   precio:['precio','tarifa','rate','kilo','kg','preciokg','precio kg','eur/kg','€/kg'],
   notas:['nota','notas','observacion','observaciones','comentario','comentarios']
 };
+var FIELDORDER=['nombrecomercial','nombre','nif','contacto','telefono','email','direccion','precio','notas'];
 function detectHeader(rows){
   var best=-1,bestScore=1;
   var lim=Math.min(rows.length,10);
@@ -519,16 +521,18 @@ function importClientes(input){var f=input.files&&input.files[0];if(!f){showToas
     var hRow=detectHeader(rows);
     var header=(hRow>=0?rows[hRow]:rows[0]);
     var dataStart=(hRow>=0?hRow+1:1);
-    var col={};
-    for(var c=0;c<header.length;c++){var h=norm(header[c]);if(!h)continue;
-      for(var fld in COLKEYS){if(col[fld]==null&&matchField(h,COLKEYS[fld])){col[fld]=c;}}}
+    var used={},col={};
+    for(var fo=0;fo<FIELDORDER.length;fo++){var fld=FIELDORDER[fo];
+      for(var c=0;c<header.length;c++){if(used[c])continue;var h=norm(header[c]);if(!h)continue;
+        if(matchField(h,COLKEYS[fld])){col[fld]=c;used[c]=true;break;}}}
     var pending=[],omitidos=0;
     for(var r=dataStart;r<rows.length;r++){(function(row){
       function cell(fld){var i=col[fld];return(i!=null&&row[i]!=null)?String(row[i]).trim():'';}
-      var nombre=cell('nombre')||cell('contacto');
+      var ncom=cell('nombrecomercial');
+      var nombre=cell('nombre')||ncom||cell('contacto');
       var nif=cell('nif'),contacto=cell('contacto'),tel=cell('telefono'),mail=cell('email'),dir=cell('direccion'),pre=cell('precio'),not=cell('notas');
       if(!nombre&&!contacto&&!tel&&!mail){omitidos++;return;}
-      pending.push({nombre:nombre||contacto||'Sin nombre',nif:nif,contacto:contacto,telefono:tel,email:mail,direccion:dir,precioKilo:parseFloat(String(pre).replace(',','.'))||0,notas:not,activo:true,origen:'import',createdAtLocal:nowLocal()});
+      pending.push({nombre:nombre||contacto||'Sin nombre',nombreComercial:ncom,nif:nif,contacto:contacto,telefono:tel,email:mail,direccion:dir,precioKilo:parseFloat(String(pre).replace(',','.'))||0,notas:not,activo:true,origen:'import',createdAtLocal:nowLocal()});
     })(rows[r]);}
     if(!pending.length){showToast('⚠️ No se encontraron clientes válidos','error');return;}
     var updates={};pending.forEach(function(cc){updates[newId()]=cc;});
@@ -540,6 +544,7 @@ function openClienteModal(id){var m=document.getElementById('clienteModal');var 
   document.getElementById('clienteModalTitle').textContent=c?'✏️ Editar cliente':'➕ Nuevo cliente';
   document.getElementById('clId').value=c?c.id:'';
   document.getElementById('clNombre').value=c?c.nombre||'':'';
+  document.getElementById('clNombreComercial').value=c?c.nombreComercial||'':'';
   document.getElementById('clNif').value=c?c.nif||'':'';
   document.getElementById('clContacto').value=c?c.contacto||'':'';
   document.getElementById('clTelefono').value=c?c.telefono||'':'';
@@ -550,7 +555,7 @@ function openClienteModal(id){var m=document.getElementById('clienteModal');var 
   m.classList.remove('hidden');}
 function cerrarClienteModal(){document.getElementById('clienteModal').classList.add('hidden');}
 function saveCliente(){if(!requireFB())return;var id=document.getElementById('clId').value;
-  var data={nombre:document.getElementById('clNombre').value.trim(),nif:document.getElementById('clNif').value.trim(),contacto:document.getElementById('clContacto').value.trim(),telefono:document.getElementById('clTelefono').value.trim(),email:document.getElementById('clEmail').value.trim(),direccion:document.getElementById('clDireccion').value.trim(),precioKilo:parseFloat(document.getElementById('clPrecio').value)||0,notas:document.getElementById('clNotas').value.trim(),activo:true,updatedAtLocal:nowLocal()};
+  var data={nombre:document.getElementById('clNombre').value.trim(),nombreComercial:document.getElementById('clNombreComercial').value.trim(),nif:document.getElementById('clNif').value.trim(),contacto:document.getElementById('clContacto').value.trim(),telefono:document.getElementById('clTelefono').value.trim(),email:document.getElementById('clEmail').value.trim(),direccion:document.getElementById('clDireccion').value.trim(),precioKilo:parseFloat(document.getElementById('clPrecio').value)||0,notas:document.getElementById('clNotas').value.trim(),activo:true,updatedAtLocal:nowLocal()};
   if(!data.nombre){showToast('⚠️ El nombre es obligatorio','error');return;}
   if(id){db.ref('clientes/'+id).update(data).then(function(){cerrarClienteModal();showToast('✅ Cliente actualizado','success');});}
   else{data.createdAtLocal=nowLocal();data.origen='manual';db.ref('clientes/'+newId()).set(data).then(function(){cerrarClienteModal();showToast('✅ Cliente creado','success');});}}
@@ -559,7 +564,7 @@ function renderClientes(){var b=document.getElementById('clientesList');if(!b)re
   if(!clientes.length){b.innerHTML='<div class="empty">Sin clientes. Importa un Excel o crea uno a mano.</div>';return;}
   b.innerHTML=clientes.slice().sort(function(a,b2){return String(a.nombre||'').localeCompare(String(b2.nombre||''));}).map(function(c){
     var sub=[c.contacto,c.telefono,c.email,c.direccion].filter(Boolean).join(' · ');
-    return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.nif?' <span class="otime">· NIF '+esc(c.nif)+'</span>':'')+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
+    return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.nombreComercial&&c.nombreComercial!==c.nombre?' <span class="otime">· '+esc(c.nombreComercial)+'</span>':'')+(c.nif?' <span class="otime">· NIF '+esc(c.nif)+'</span>':'')+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
     '<div style="display:flex;gap:6px;"><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');}
 
 function urlQRCliente(id){return location.origin+location.pathname+'?vista=cliente&cliente='+encodeURIComponent(id);}
@@ -569,7 +574,7 @@ function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview')
   ensureQR(function(ok){
     var g=document.getElementById('qrCG');if(!g)return;g.innerHTML='';
     clientes.forEach(function(c,i){var url=urlQRCliente(c.id);var card=document.createElement('div');card.className='qr-card';
-      card.innerHTML='<div id="qrcC'+i+'"></div><h4>'+esc(c.nombre||'')+'</h4>'+(c.nif?'<div class="otime">'+esc(c.nif)+'</div>':'')+'<button class="btn btn-grey btn-sm" style="margin-top:8px;" onclick="copiarURL(\''+encodeURIComponent(url)+'\')">📋 Copiar</button>';
+      card.innerHTML='<div id="qrcC'+i+'"></div><h4>'+esc(c.nombreComercial||c.nombre||'')+'</h4>'+(c.nif?'<div class="otime">'+esc(c.nif)+'</div>':'')+'<button class="btn btn-grey btn-sm" style="margin-top:8px;" onclick="copiarURL(\''+encodeURIComponent(url)+'\')">📋 Copiar</button>';
       g.appendChild(card);
       if(ok){var el=document.getElementById('qrcC'+i);if(el&&typeof QRCode!=='undefined'){new QRCode(el,{text:url,width:140,height:140,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}}
     });
@@ -631,6 +636,7 @@ function buildPDF(c,ym,lines,rec){
   doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);
   doc.text('Cliente: '+(c.nombre||''),14,66);
   var cy=72;
+  if(c.nombreComercial){doc.text('Nombre comercial: '+c.nombreComercial,14,cy);cy+=6;}
   if(c.nif){doc.text('NIF/CIF: '+c.nif,14,cy);cy+=6;}
   if(c.direccion){doc.text('Dirección: '+c.direccion,14,cy);cy+=6;}
   if(c.contacto){doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,cy);cy+=6;}
@@ -683,7 +689,7 @@ function solicitarRecogida(){if(!requireFB())return;
   if(nota===null)return;
   var c=clientById(clienteIdFijo);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
   var id=newId();
-  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,importeMaterial:0,materialEspecial:'',total:0,createdAtLocal:nowLocal(),updatedAtLocal:nowLocal()})
+  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:clienteNombre||c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,importeMaterial:0,materialEspecial:'',total:0,createdAtLocal:nowLocal(),updatedAtLocal:nowLocal()})
     .then(function(){showToast('✅ Solicitud enviada','success');});}
 
 function cambiarEstado(id,est){if(!puedeCambiar(est)){showToast('⚠️ Tu rol no puede hacer eso','error');return;}if(!requireFB())return;
