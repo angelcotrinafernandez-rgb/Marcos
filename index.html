@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias</title>
-<!-- VERSION: LAV-2026-09-13-D -->
+<!-- VERSION: LAV-2026-09-13-E -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -85,7 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-top:16px;}
 .qr-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
 .qr-card canvas,.qr-card img{width:140px!important;height:140px!important;background:#fff;padding:8px;border-radius:8px;}
-.qr-card h4{margin:12px 0 8px;font-size:15px;}
+.qr-card h4{margin:12px 0 4px;font-size:15px;}
 .debug-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;}
 .debug-line{padding:2px 0;color:var(--t2);} .debug-line.error{color:var(--red);} .debug-line.success{color:var(--green);}
 @media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}}
@@ -148,7 +148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 D</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 E</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -194,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
         <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
       </div>
-      <div class="otime" style="margin-bottom:10px;">Lee las columnas que encuentre. Lo que falte se completa con ✏️. Cada cliente tiene su QR.</div>
+      <div class="otime" style="margin-bottom:10px;">Detecta automáticamente la fila de cabeceras y reconoce muchas variantes de nombre de columna. Lo que falte se completa con ✏️.</div>
       <div id="clientesList"></div>
       <div id="qrClientesPreview" class="hidden"></div>
     </div>
@@ -286,7 +286,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -295,7 +295,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 var firebaseConfig={apiKey:"AIzaSyCkorGh_Y_kc2S6WV9G-cqieUXg9OovDHo",authDomain:"lavanderiamarcos-2eac4.firebaseapp.com",databaseURL:"https://lavanderiamarcos-2eac4-default-rtdb.europe-west1.firebasedatabase.app",projectId:"lavanderiamarcos-2eac4",storageBucket:"lavanderiamarcos-2eac4.firebasestorage.app",messagingSenderId:"261213169563",appId:"1:261213169563:web:d35ed5c53cc643762b233e"};
 var db=null,firebaseReady=false,wasDisconnected=false;
 
-// Datos de empresa (por defecto; editables en Admin y guardados en Firebase)
 var empresa={
   nombre:'LavaExpressCanarias, S.L.U.',
   nif:'B23904170',
@@ -310,6 +309,19 @@ function syncFail(msg){var b=document.getElementById('syncError');if(!b)return;b
 function clearSyncFail(){var b=document.getElementById('syncError');if(b)b.classList.add('hidden');}
 function igicOf(base){return Math.round((base||0)*0.07*100)/100;}
 function totalConIGIC(base){var b=base||0;return Math.round((b+igicOf(b))*100)/100;}
+
+// QR: carga fiable con respaldo
+var qrTried=false;
+function ensureQR(cb){
+  if(typeof QRCode!=='undefined'){cb(true);return;}
+  if(qrTried){cb(false);return;}
+  qrTried=true;
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js';
+  s.onload=function(){cb(typeof QRCode!=='undefined');};
+  s.onerror=function(){cb(false);};
+  document.head.appendChild(s);
+}
 
 function initFirebase(){try{firebase.initializeApp(firebaseConfig);db=firebase.database();firebaseReady=true;
   db.ref('.info/connected').on('value',function(s){var c=s.val()===true;var d=document.getElementById('cDot'),t=document.getElementById('cTxt'),b=document.getElementById('reconnectBanner');
@@ -350,7 +362,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-D';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-E';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -389,7 +401,6 @@ function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña
     var n=prompt('Nueva (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
     db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
 
-// ============ EMPRESA ============
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
   a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
   document.getElementById('empDireccion').value=empresa.direccion||'';document.getElementById('empCuenta').value=empresa.cuenta||'';}
@@ -397,7 +408,6 @@ function saveEmpresa(){if(!requireFB())return;
   var data={nombre:document.getElementById('empNombre').value.trim(),nif:document.getElementById('empNif').value.trim(),direccion:document.getElementById('empDireccion').value.trim(),cuenta:document.getElementById('empCuenta').value.trim()};
   db.ref('config/empresa').set(data).then(function(){showToast('✅ Datos de empresa guardados','success');});}
 
-// ============ RESET ============
 function resetDatos(){if(!requireFB())return;
   if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores de numeración.\nLos clientes, los datos de empresa y el acceso de admin se CONSERVAN.\n¿Continuar?'))return;
   var tec=prompt('Escribe BORRAR para confirmar el reset:');
@@ -474,35 +484,55 @@ function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=docu
 function adminGenerarFM(){var c=document.getElementById('fmCliente').value,m=document.getElementById('fmMes').value;
   if(!c||!m){showToast('⚠️ Elige cliente y mes','error');return;}generarPDFMensual(c,m);}
 
-function colIdx(headers,keys){for(var i=0;i<headers.length;i++){var h=String(headers[i]||'').toLowerCase().trim();for(var k=0;k<keys.length;k++){if(h.indexOf(keys[k])!==-1)return i;}}return -1;}
+// ============ IMPORT EXCEL TOLERANTE ============
+function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function escRe(k){return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function matchField(h,keys){for(var k=0;k<keys.length;k++){var key=keys[k];if(h===key)return true;if(new RegExp('(^|[^a-z0-9])'+escRe(key)).test(h))return true;}return false;}
+var COLKEYS={
+  nombre:['nombre','cliente','client','razonsocial','razon social','hotel','establecimiento','name','empresa'],
+  nif:['nif','cif','dni','nifcif','identificacion'],
+  contacto:['contacto','persona','responsable','contact'],
+  telefono:['telefono','tel','tlf','tfno','movil','phone'],
+  email:['email','mail','correo'],
+  direccion:['direccion','address','domicilio'],
+  precio:['precio','tarifa','rate','kilo','kg','preciokg','precio kg','eur/kg','€/kg'],
+  notas:['nota','notas','observacion','observaciones','comentario','comentarios']
+};
+function detectHeader(rows){
+  var best=-1,bestScore=1;
+  var lim=Math.min(rows.length,10);
+  for(var r=0;r<lim;r++){
+    var score=0;var row=rows[r];
+    for(var c=0;c<row.length;c++){var h=norm(row[c]);if(!h)continue;
+      for(var f in COLKEYS){if(matchField(h,COLKEYS[f])){score++;break;}}}
+    if(score>bestScore){bestScore=score;best=r;}
+  }
+  return best;
+}
 function importClientes(input){var f=input.files&&input.files[0];if(!f){showToast('⚠️ Elige un archivo','error');return;}if(!requireFB())return;
   var reader=new FileReader();
   reader.onload=function(e){try{
     var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
     var ws=wb.Sheets[wb.SheetNames[0]];
     var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-    if(rows.length<2){showToast('⚠️ El Excel no tiene filas de datos','error');return;}
-    var h=rows[0];
-    var iNom=colIdx(h,['nombre','cliente','client','razon','hotel','establecimiento','name']);
-    var iNif=colIdx(h,['nif','cif','dni']);
-    var iCon=colIdx(h,['contacto','persona','responsable']);
-    var iTel=colIdx(h,['telefono','teléfon','phone','movil','móvil']);
-    var iMail=colIdx(h,['email','mail','correo']);
-    var iDir=colIdx(h,['direccion','dirección','address','domicilio']);
-    var iPre=colIdx(h,['precio','tarifa','rate','kilo']);
-    var iNot=colIdx(h,['nota','observacion','observación','comentario']);
+    if(!rows.length){showToast('⚠️ Hoja vacía','error');return;}
+    var hRow=detectHeader(rows);
+    var header=(hRow>=0?rows[hRow]:rows[0]);
+    var dataStart=(hRow>=0?hRow+1:1);
+    var col={};
+    for(var c=0;c<header.length;c++){var h=norm(header[c]);if(!h)continue;
+      for(var fld in COLKEYS){if(col[fld]==null&&matchField(h,COLKEYS[fld])){col[fld]=c;}}}
     var pending=[],omitidos=0;
-    for(var r=1;r<rows.length;r++){(function(row){
-      function cell(i){return(i>=0&&row[i]!=null)?String(row[i]).trim():'';}
-      var nombre=iNom>=0?cell(iNom):cell(0);
-      var nif=iNif>=0?cell(iNif):'';
-      var contacto=cell(iCon),tel=cell(iTel),mail=cell(iMail),dir=cell(iDir),pre=cell(iPre),not=cell(iNot);
+    for(var r=dataStart;r<rows.length;r++){(function(row){
+      function cell(fld){var i=col[fld];return(i!=null&&row[i]!=null)?String(row[i]).trim():'';}
+      var nombre=cell('nombre')||cell('contacto');
+      var nif=cell('nif'),contacto=cell('contacto'),tel=cell('telefono'),mail=cell('email'),dir=cell('direccion'),pre=cell('precio'),not=cell('notas');
       if(!nombre&&!contacto&&!tel&&!mail){omitidos++;return;}
       pending.push({nombre:nombre||contacto||'Sin nombre',nif:nif,contacto:contacto,telefono:tel,email:mail,direccion:dir,precioKilo:parseFloat(String(pre).replace(',','.'))||0,notas:not,activo:true,origen:'import',createdAtLocal:nowLocal()});
     })(rows[r]);}
     if(!pending.length){showToast('⚠️ No se encontraron clientes válidos','error');return;}
-    var updates={};pending.forEach(function(c){updates[newId()]=c;});
-    db.ref('clientes').update(updates).then(function(){showToast('✅ '+pending.length+' clientes creados'+(omitidos?' · '+omitidos+' filas omitidas':''),'success');});
+    var updates={};pending.forEach(function(cc){updates[newId()]=cc;});
+    db.ref('clientes').update(updates).then(function(){showToast('✅ '+pending.length+' clientes importados'+(omitidos?' · '+omitidos+' filas omitidas':''),'success');});
   }catch(err){showToast('❌ Error leyendo Excel: '+err.message,'error');}};
   reader.readAsArrayBuffer(f);input.value='';}
 
@@ -535,10 +565,16 @@ function renderClientes(){var b=document.getElementById('clientesList');if(!b)re
 function urlQRCliente(id){return location.origin+location.pathname+'?vista=cliente&cliente='+encodeURIComponent(id);}
 function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview');if(!pv)return;
   if(!clientes.length){pv.classList.remove('hidden');pv.innerHTML='<div class="empty">Primero crea o importa clientes</div>';return;}
-  pv.classList.remove('hidden');pv.innerHTML='<div class="qr-grid" id="qrCG"></div>';var g=document.getElementById('qrCG');
-  clientes.forEach(function(c,i){var url=urlQRCliente(c.id);var card=document.createElement('div');card.className='qr-card';
-    card.innerHTML='<div id="qrcC'+i+'"></div><h4>'+esc(c.nombre||'')+'</h4><button class="btn btn-grey btn-sm" onclick="copiarURL(\''+encodeURIComponent(url)+'\')">📋 Copiar</button>';
-    g.appendChild(card);setTimeout(function(){var el=document.getElementById('qrcC'+i);if(el&&typeof QRCode!=='undefined')new QRCode(el,{text:url,width:140,height:140,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});},50);});}
+  pv.classList.remove('hidden');pv.innerHTML='<div class="qr-grid" id="qrCG"></div>';
+  ensureQR(function(ok){
+    var g=document.getElementById('qrCG');if(!g)return;g.innerHTML='';
+    clientes.forEach(function(c,i){var url=urlQRCliente(c.id);var card=document.createElement('div');card.className='qr-card';
+      card.innerHTML='<div id="qrcC'+i+'"></div><h4>'+esc(c.nombre||'')+'</h4>'+(c.nif?'<div class="otime">'+esc(c.nif)+'</div>':'')+'<button class="btn btn-grey btn-sm" style="margin-top:8px;" onclick="copiarURL(\''+encodeURIComponent(url)+'\')">📋 Copiar</button>';
+      g.appendChild(card);
+      if(ok){var el=document.getElementById('qrcC'+i);if(el&&typeof QRCode!=='undefined'){new QRCode(el,{text:url,width:140,height:140,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}}
+    });
+    if(!ok){showToast('⚠️ No se pudo cargar el generador de QR; usa Copiar','error');}
+  });}
 function copiarURL(enc){var url=decodeURIComponent(enc);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(function(){showToast('✅ URL copiada','success');});else showToast(url);}
 
 function renderClientState(){var card=document.getElementById('clientStateCard');
@@ -675,7 +711,7 @@ function subscribeAll(){if(!firebaseReady||!db)return;
 setInterval(function(){if(isStaff())renderStaffServicios();},30000);
 
 function boot(){applyRole();if(initFirebase()){subscribeAll();}}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
 </script>
 </body>
 </html>
