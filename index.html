@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-H2 -->
+<!-- VERSION: LAV-2026-09-13-I -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -93,6 +93,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .rec-dias{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
 .rec-dias label{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--t2);}
 .rec-dias input{width:auto;margin:0;}
+.hora-row{display:flex;gap:8px;align-items:center;}
+.hora-row .input{margin:0;}
 .debug-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;}
 .debug-line{padding:2px 0;color:var(--t2);} .debug-line.error{color:var(--red);} .debug-line.success{color:var(--green);}
 @media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}}
@@ -155,7 +157,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 H2</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 I</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -230,7 +232,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="totalBreakdown" class="otime" style="margin-top:4px;"></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
-      <button class="btn btn-gold btn-block" onclick="solicitarRecogida()">🧺 Solicitar recogida</button>
+      <button class="btn btn-gold btn-block" onclick="abrirRecogidaModal()">🧺 Solicitar recogida</button>
       <button class="btn btn-grey btn-block" onclick="toggleHistorial()">📋 Ver mis servicios</button>
     </div>
     <div class="card">
@@ -253,6 +255,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
     <div id="ocount" class="ocount hidden"></div>
     <div id="obody" class="obody"></div>
     <button class="btn btn-green obtn" onclick="cerrarOverlay()">✅ ENTERADO</button>
+  </div>
+</div>
+
+<div id="recogidaModal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h3 style="margin-bottom:12px;">🧺 Solicitar recogida</h3>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:4px;">Fecha de recogida *</div>
+    <input class="input" type="date" id="recFecha"/>
+    <div style="font-size:13px;color:var(--t2);margin:6px 0 4px;">Franja horaria (opcional)</div>
+    <div class="hora-row">
+      <input class="input" type="time" id="recDesde"/>
+      <span style="color:var(--t2);">a</span>
+      <input class="input" type="time" id="recHasta"/>
+    </div>
+    <textarea class="textarea" id="recNota" placeholder="Nota opcional (qué ropa es...)" style="margin-top:10px;"></textarea>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn btn-grey" onclick="cerrarRecogidaModal()">Cancelar</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmarRecogida()">✅ Enviar solicitud</button>
+    </div>
   </div>
 </div>
 
@@ -354,6 +375,8 @@ function igicOf(base){return Math.round((base||0)*0.07*100)/100;}
 function totalConIGIC(base){var b=base||0;return Math.round((b+igicOf(b))*100)/100;}
 function pad2(n){return String(n).padStart(2,'0');}
 function localISO(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function fmtFecha(ymd){if(!ymd)return'';var p=String(ymd).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function plusOneHour(hhmm){if(!hhmm)return'';var p=String(hhmm).split(':');var h=parseInt(p[0],10)+1;if(h>23)h=23;return pad2(h)+':'+(p[1]||'00');}
 function fdt(ms){if(!ms)return'';var d=new Date(ms);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}
 function toLocalInput(ms){if(!ms)return'';var d=new Date(ms);return localISO(d)+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
 
@@ -416,7 +439,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-H2';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-I';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -427,7 +450,7 @@ function nextNumeroFactura(cb){db.ref('config/contadorFactura').transaction(func
 
 function showOverlay(){if(!overlayQueue.length)return;
   document.getElementById('otitle').textContent=overlayQueue.length>1?'🔔 AVISOS':'🔔 NUEVA SOLICITUD';
-  document.getElementById('obody').innerHTML=overlayQueue.map(function(i){return'<div class="oorder"><div class="om">🏨 '+esc(i.servicio.clienteNombre||'S/C')+'</div><div class="oi">'+escL(i.servicio.nota||'Sin nota')+'</div><div class="ot">'+ftime(i.servicio.createdAtLocal)+'</div></div>';}).join('');
+  document.getElementById('obody').innerHTML=overlayQueue.map(function(i){return'<div class="oorder"><div class="om">🏨 '+esc(i.servicio.clienteNombre||'S/C')+'</div><div class="oi">'+escL(i.servicio.nota||'Sin nota')+'</div><div class="ot">'+(i.servicio.fechaRecogida?('📅 '+fmtFecha(i.servicio.fechaRecogida)+(i.servicio.franjaDesde?' '+i.servicio.franjaDesde+'–'+(i.servicio.franjaHasta||''):'')):ftime(i.servicio.createdAtLocal))+'</div></div>';}).join('');
   var c=document.getElementById('ocount');if(overlayQueue.length>1){c.textContent=overlayQueue.length+' avisos';c.classList.remove('hidden');}else c.classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');beep();vibrar();}
 function cerrarOverlay(){overlayQueue=[];document.getElementById('overlay').classList.add('hidden');try{if(navigator.vibrate)navigator.vibrate(0);}catch(e){}}
@@ -506,6 +529,9 @@ function botonesPara(s){var b='';
   if(s.estado==='SOLICITADO'&&puedeCambiar('CANCELADO'))b+='<button class="btn btn-red btn-sm" onclick="cambiarEstado(\''+s.id+'\',\'CANCELADO\')">❌</button>';
   if(b==='')b='<span class="otime">🔒 Sin acciones</span>';return b;}
 
+function lineaRecogida(s){if(!s.fechaRecogida)return'';
+  return '<div class="otime" style="margin-top:4px;">📅 Recoger: '+fmtFecha(s.fechaRecogida)+(s.franjaDesde?' · '+s.franjaDesde+'–'+(s.franjaHasta||''):'')+'</div>';}
+
 function renderStaffServicios(){var box=document.getElementById('staffServicios');if(!box)return;
   var list=servicios.slice().sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});
   if(!list.length){box.innerHTML='<div class="empty">Esperando servicios...</div>';return;}
@@ -521,17 +547,42 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
     if(s.tsEntregado)tsParts.push('Ent. '+fdt(s.tsEntregado));
     var tsLine=tsParts.length?('<div class="otime" style="margin-top:4px;">🕒 '+tsParts.join(' · ')+'</div>'):'';
     var extra='';
-    if(['PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1){
+    if(['RECOGIDO','PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1){
+      var weighed=['PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1;
       extra='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'
-        +'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>'
-        +(role==='admin'?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')
-        +(role==='admin'?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
+        +(role==='admin'?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')
+        +(weighed?'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>':'')
+        +(role==='admin'&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')
+        +(role==='admin'&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
         +'</div>';
     }
     return'<div class="order '+cls+'"><div class="ohead"><span class="cliente-tag">🏨 '+esc(s.clienteNombre||'S/C')+(s.recurrente?' 🔁':'')+'</span><span class="otime">'+ftime(s.createdAtLocal)+badge+'</span></div>'+
       '<div class="oitems">'+escL(s.nota||'Sin nota')+'</div>'+
-      (info?'<div class="otime" style="margin-bottom:4px;">'+info+'</div>':'')+prendasTxt+tsLine+extra+
+      lineaRecogida(s)+
+      (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+prendasTxt+tsLine+extra+
       '<div class="ofoot" style="margin-top:8px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div></div>';}).join('');}
+
+function retrocederEstado(id){
+  if(role!=='admin'){showToast('⚠️ Solo el admin puede retroceder','error');return;}
+  var s=servicioPorId(id);if(!s)return;
+  var prev=null;
+  if(s.estado==='ENTREGADO')prev='PESADO';
+  else if(s.estado==='PESADO')prev='RECOGIDO';
+  else if(s.estado==='RECOGIDO')prev='SOLICITADO';
+  if(!prev){showToast('⚠️ Este servicio no puede retroceder','error');return;}
+  if(!confirm('⚠️ Se volverá al paso anterior: '+stLabel(prev)+'.\n¿Continuar?'))return;
+  var upd={estado:prev,updatedAtLocal:nowLocal()};
+  var borrarFactura=null;
+  if(prev==='PESADO'){upd.tsEntregado=null;}
+  if(prev==='RECOGIDO'){
+    upd.tsPesado=null;upd.facturaId=null;upd.kg=null;upd.prendas=null;upd.importeMaterial=null;upd.materialEspecial=null;upd.notaMaterial=null;upd.total=null;
+    if(s.facturaId){borrarFactura=facturaPorNumero(s.facturaId);}
+  }
+  var ops=[];
+  if(borrarFactura)ops.push(db.ref('facturas/'+borrarFactura.id).remove());
+  ops.push(db.ref('servicios/'+id).update(upd));
+  Promise.all(ops).then(function(){showToast('✅ Servicio retrocedido a '+stLabel(prev),'success');})
+    .catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
 function borrarServicio(id){if(role!=='admin'){showToast('⚠️ Solo el admin puede borrar','error');return;}
   if(!confirm('⚠️ Se borrará el servicio y su factura asociada.\n¿Continuar?'))return;
@@ -694,6 +745,26 @@ function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview')
   });}
 function copiarURL(enc){var url=decodeURIComponent(enc);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(function(){showToast('✅ URL copiada','success');});else showToast(url);}
 
+// ============ SOLICITUD CON FECHA Y FRANJA ============
+function abrirRecogidaModal(){
+  var d=new Date();
+  document.getElementById('recFecha').value=localISO(d);
+  document.getElementById('recDesde').value='';
+  document.getElementById('recHasta').value='';
+  document.getElementById('recNota').value='';
+  document.getElementById('recogidaModal').classList.remove('hidden');}
+function cerrarRecogidaModal(){document.getElementById('recogidaModal').classList.add('hidden');}
+function confirmarRecogida(){if(!requireFB())return;
+  var fecha=document.getElementById('recFecha').value;
+  if(!fecha){showToast('⚠️ Elige la fecha de recogida','error');return;}
+  var desde=document.getElementById('recDesde').value;
+  var hasta=document.getElementById('recHasta').value;
+  var nota=document.getElementById('recNota').value.trim();
+  var c=clientById(clienteIdFijo);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
+  var id=newId();var now=nowLocal();
+  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:clienteNombre||c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,fechaRecogida:fecha,franjaDesde:desde,franjaHasta:hasta,tsSolicitado:now,createdAtLocal:now,updatedAtLocal:now})
+    .then(function(){cerrarRecogidaModal();showToast('✅ Solicitud enviada','success');});}
+
 function generarRecurrentes(){
   if(!firebaseReady||!isStaff())return;
   if(!clientes.length)return;
@@ -702,8 +773,9 @@ function generarRecurrentes(){
     var rec=c.recurrencia;if(!rec||!rec.activo||!rec.dias||rec.dias.indexOf(wd)===-1)return;
     var exists=servicios.some(function(s){return s.clienteId===c.id&&s.fechaProgramada===todayISO;});
     if(exists)return;
+    var desde=rec.hora||'';var hasta=desde?plusOneHour(desde):'';
     var id=newId();
-    db.ref('servicios/'+id).set({clienteId:c.id,clienteNombre:c.nombreComercial||c.nombre||'',nota:'Servicio recurrente',estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,recurrente:true,fechaProgramada:todayISO,tsSolicitado:Date.now(),createdAtLocal:Date.now(),updatedAtLocal:Date.now()});
+    db.ref('servicios/'+id).set({clienteId:c.id,clienteNombre:c.nombreComercial||c.nombre||'',nota:'Servicio recurrente',estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,recurrente:true,fechaProgramada:todayISO,fechaRecogida:todayISO,franjaDesde:desde,franjaHasta:hasta,tsSolicitado:Date.now(),createdAtLocal:Date.now(),updatedAtLocal:Date.now()});
   });
 }
 
@@ -715,7 +787,7 @@ function renderClientState(){var card=document.getElementById('clientStateCard')
 function renderClientServicios(){var b=document.getElementById('clientServicios');if(!b)return;
   if(!clientServicios.length){b.innerHTML='<div class="empty">Aún no tienes servicios.</div>';return;}
   var s=clientServicios.slice().sort(function(a,b2){return(b2.createdAtLocal||0)-(a.createdAtLocal||0);});
-  b.innerHTML=s.map(function(serv){return'<div class="order '+stClass(serv.estado)+'"><div class="oitems">'+escL(serv.nota||'')+'</div><div class="ofoot"><span class="st '+stClass(serv.estado)+'">'+stLabel(serv.estado)+'</span><span class="otime">'+ftime(serv.createdAtLocal)+'</span></div></div>';}).join('');}
+  b.innerHTML=s.map(function(serv){return'<div class="order '+stClass(serv.estado)+'"><div class="oitems">'+escL(serv.nota||'')+'</div>'+lineaRecogida(serv)+'<div class="ofoot"><span class="st '+stClass(serv.estado)+'">'+stLabel(serv.estado)+'</span><span class="otime">'+ftime(serv.createdAtLocal)+'</span></div></div>';}).join('');}
 function renderTotal(){var base=0;clientServicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)base+=Number(s.total)||0;});
   var c=document.getElementById('totalCard'),v=document.getElementById('totalValue'),bd=document.getElementById('totalBreakdown');
   if(base>0){c.style.display='block';v.textContent=fp(totalConIGIC(base));if(bd)bd.textContent='Base '+fp(base)+' + IGIC 7% '+fp(igicOf(base));}
@@ -858,14 +930,6 @@ function confirmarPesaje(){if(!requireFB()||!pesarServicioId)return;
     db.ref('facturas/'+newId()).set({numero:num,fecha:localISO(d),hora:pad2(d.getHours())+':'+pad2(d.getMinutes()),timestamp:now,clienteId:s.clienteId,clienteNombre:s.clienteNombre,kg:kg,precioKilo:s.precioKilo,base:Math.round(base*100)/100,prendas:pesarPrendas,materialImporte:mat,materialDesc:matDesc,notaMaterial:note,total:Math.round(total*100)/100,servicioId:s.id})
       .then(function(){return db.ref('servicios/'+pesarServicioId).update({estado:'PESADO',kg:kg,prendas:pesarPrendas,importeMaterial:mat,materialEspecial:matDesc,notaMaterial:note,total:Math.round(total*100)/100,tsPesado:now,updatedAtLocal:now,facturaId:num});})
       .then(function(){cerrarPesarModal();showToast('✅ '+num+': '+fp(total),'success');});});}
-
-function solicitarRecogida(){if(!requireFB())return;
-  var nota=prompt('Describe la ropa a lavar (sábanas, toallas, mantelería...) o notas:');
-  if(nota===null)return;
-  var c=clientById(clienteIdFijo);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
-  var id=newId();var now=nowLocal();
-  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:clienteNombre||c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,tsSolicitado:now,createdAtLocal:now,updatedAtLocal:now})
-    .then(function(){showToast('✅ Solicitud enviada','success');});}
 
 function cambiarEstado(id,est){if(!puedeCambiar(est)){showToast('⚠️ Tu rol no puede hacer eso','error');return;}if(!requireFB())return;
   var upd={estado:est,updatedAtLocal:nowLocal()};
