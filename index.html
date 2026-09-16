@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-H -->
+<!-- VERSION: LAV-2026-09-13-H2 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -155,7 +155,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 H</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 H2</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -201,7 +201,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
         <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
       </div>
-      <div class="otime" style="margin-bottom:10px;">En la ficha: precios por prenda y servicio recurrente (días de recogida automática).</div>
+      <div class="otime" style="margin-bottom:10px;">En la ficha: precios por prenda y servicio recurrente (recogida automática).</div>
       <div id="clientesList"></div>
       <div id="qrClientesPreview" class="hidden"></div>
     </div>
@@ -410,11 +410,13 @@ function requireFB(){if(!firebaseReady||!db){showToast('❌ Firebase no listo','
 function stLabel(e){var m={SOLICITADO:'📥 Solicitado',RECOGIDO:'🚚 Recogido',PESADO:'⚖️ Pesado',ENTREGADO:'📦 Entregado',CANCELADO:'❌ Cancelado'};return m[e]||e;}
 function stClass(e){var m={SOLICITADO:'solicitado',RECOGIDO:'recogido',PESADO:'pesado',ENTREGADO:'entregado',CANCELADO:'cancelado'};return m[e]||'solicitado';}
 function clientById(id){for(var i=0;i<clientes.length;i++)if(clientes[i].id===id)return clientes[i];return null;}
+function servicioPorId(id){for(var i=0;i<servicios.length;i++)if(servicios[i].id===id)return servicios[i];return null;}
+function facturaPorNumero(num){for(var i=0;i<facturas.length;i++)if(facturas[i].numero===num)return facturas[i];return null;}
 function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-H';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-H2';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -452,7 +454,7 @@ function verLogin(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordH
 function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña actual:');if(!a)return;
   db.ref('config/admin').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
     var n=prompt('Nueva (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
-  db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
+    db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
 
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
   a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
@@ -533,13 +535,13 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
 
 function borrarServicio(id){if(role!=='admin'){showToast('⚠️ Solo el admin puede borrar','error');return;}
   if(!confirm('⚠️ Se borrará el servicio y su factura asociada.\n¿Continuar?'))return;
-  var s=null;servicios.forEach(function(x){if(x.id===id)s=x;});if(!s)return;
+  var s=servicioPorId(id);if(!s)return;
   var ops=[db.ref('servicios/'+id).remove()];
-  if(s.facturaId){var f=null;facturas.forEach(function(x){if(x.numero===s.facturaId)f=x;});if(f)ops.push(db.ref('facturas/'+f.id).remove());}
+  if(s.facturaId){var f=facturaPorNumero(s.facturaId);if(f)ops.push(db.ref('facturas/'+f.id).remove());}
   Promise.all(ops).then(function(){showToast('✅ Servicio y factura borrados','success');})
     .catch(function(e){showToast('❌ Error al borrar: '+e.message,'error');});}
 
-function abrirTsModal(id){var s=null;servicios.forEach(function(x){if(x.id===id}s=x;});if(!s)return;
+function abrirTsModal(id){var s=servicioPorId(id);if(!s)return;
   document.getElementById('tsId').value=id;
   document.getElementById('tsS').value=toLocalInput(s.tsSolicitado);
   document.getElementById('tsP').value=toLocalInput(s.tsPesado);
@@ -547,7 +549,7 @@ function abrirTsModal(id){var s=null;servicios.forEach(function(x){if(x.id===id}
   document.getElementById('tsModal').classList.remove('hidden');}
 function cerrarTsModal(){document.getElementById('tsModal').classList.add('hidden');}
 function saveTs(){if(!requireFB())return;var id=document.getElementById('tsId').value;
-  var s=null;servicios.forEach(function(x){if(x.id===id}s=x;});if(!s)return;
+  var s=servicioPorId(id);if(!s)return;
   var upd={};
   var vS=document.getElementById('tsS').value;var vP=document.getElementById('tsP').value;var vE=document.getElementById('tsE').value;
   if(vS)upd.tsSolicitado=new Date(vS).getTime();
@@ -555,7 +557,7 @@ function saveTs(){if(!requireFB())return;var id=document.getElementById('tsId').
   if(vE)upd.tsEntregado=new Date(vE).getTime();
   upd.updatedAtLocal=nowLocal();
   db.ref('servicios/'+id).update(upd).then(function(){
-    if(vP&&s.facturaId){var f=null;facturas.forEach(function(x){if(x.numero===s.facturaId)f=x;});
+    if(vP&&s.facturaId){var f=facturaPorNumero(s.facturaId);
       if(f){var d=new Date(new Date(vP).getTime());db.ref('facturas/'+f.id).update({fecha:localISO(d),hora:pad2(d.getHours())+':'+pad2(d.getMinutes())});}}
     cerrarTsModal();showToast('✅ Fechas actualizadas','success');
   }).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
@@ -645,7 +647,7 @@ function renderRecInputs(c){var box=document.getElementById('clRecDias');if(!box
   document.getElementById('clRecHora').value=rec.hora||'';
   document.getElementById('clRecActivo').checked=!!rec.activo;}
 
-function openClienteModal(id){var m=document.getElementById('clienteModal');var c=null;if(id)clientes.forEach(function(x){if(x.id===id)c=x;});
+function openClienteModal(id){var m=document.getElementById('clienteModal');var c=null;if(id)c=clientById(id);
   document.getElementById('clienteModalTitle').textContent=c?'✏️ Editar cliente':'➕ Nuevo cliente';
   document.getElementById('clId').value=c?c.id:'';
   document.getElementById('clNombre').value=c?c.nombre||'':'';
@@ -692,7 +694,6 @@ function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview')
   });}
 function copiarURL(enc){var url=decodeURIComponent(enc);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(function(){showToast('✅ URL copiada','success');});else showToast(url);}
 
-// ============ RECURRENCIA ============
 function generarRecurrentes(){
   if(!firebaseReady||!isStaff())return;
   if(!clientes.length)return;
@@ -731,7 +732,7 @@ var pesarPrendas=[];
 var pesarEditMode=false;
 function populatePrendaSelect(){var s=document.getElementById('pesarPrenda');if(!s)return;
   s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
-function servicioActual(){var s=null;servicios.forEach(function(x){if(x.id===pesarServicioId)s=x;});return s;}
+function servicioActual(){return servicioPorId(pesarServicioId);}
 function preciosPrendasCliente(){var s=servicioActual();if(!s)return null;var c=clientById(s.clienteId);return (c&&c.preciosPrendas)||null;}
 function addPrendaLine(){var tipo=document.getElementById('pesarPrenda').value;var qty=parseInt(document.getElementById('pesarPrendaQty').value)||0;
   if(qty<=0){showToast('⚠️ Nº de prendas no válido','error');return;}
@@ -752,7 +753,7 @@ function ensureFacturaMensual(clientId,ym,cb){
   var key=clientId+'_'+ym;
   db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();
     if(rec&&rec.numero){cb(rec);return;}
-  db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){
+    db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){
       if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}
       var n=snap.val();var numero='FM-'+ym.replace('-','')+'-'+String(n).padStart(4,'0');
       var newRec={numero:numero,clientId:clientId,ym:ym,createdAt:Date.now()};
@@ -845,7 +846,7 @@ function confirmarPesaje(){if(!requireFB()||!pesarServicioId)return;
   if(pesarEditMode){
     var upd={kg:kg,prendas:pesarPrendas,importeMaterial:mat,materialEspecial:matDesc,notaMaterial:note,total:Math.round(total*100)/100,updatedAtLocal:now};
     db.ref('servicios/'+s.id).update(upd).then(function(){
-      if(s.facturaId){var f=null;facturas.forEach(function(x){if(x.numero===s.facturaId)f=x;});
+      if(s.facturaId){var f=facturaPorNumero(s.facturaId);
         if(f){db.ref('facturas/'+f.id).update({kg:kg,precioKilo:s.precioKilo,base:Math.round(base*100)/100,prendas:pesarPrendas,materialImporte:mat,materialDesc:matDesc,total:Math.round(total*100)/100});}}
       cerrarPesarModal();showToast('✅ Servicio y factura actualizados','success');
     }).catch(function(e){showToast('❌ Error: '+e.message,'error');});
