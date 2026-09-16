@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-I -->
+<!-- VERSION: LAV-2026-09-13-J -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -157,7 +157,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
       <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
       <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 I</div>
+      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 J</div>
       <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
     </div>
   </section>
@@ -203,7 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
         <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
       </div>
-      <div class="otime" style="margin-bottom:10px;">En la ficha: precios por prenda y servicio recurrente (recogida automática).</div>
+      <div class="otime" style="margin-bottom:10px;">Botón "🧺 Pedido": crea una solicitud en nombre del cliente (entra como SOLICITADO).</div>
       <div id="clientesList"></div>
       <div id="qrClientesPreview" class="hidden"></div>
     </div>
@@ -260,7 +260,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 
 <div id="recogidaModal" class="modal-overlay hidden">
   <div class="modal-content">
-    <h3 style="margin-bottom:12px;">🧺 Solicitar recogida</h3>
+    <h3 id="recTitle" style="margin-bottom:12px;">🧺 Solicitar recogida</h3>
     <div style="font-size:13px;color:var(--t2);margin-bottom:4px;">Fecha de recogida *</div>
     <input class="input" type="date" id="recFecha"/>
     <div style="font-size:13px;color:var(--t2);margin:6px 0 4px;">Franja horaria (opcional)</div>
@@ -420,6 +420,7 @@ var deviceId=clientId;
 var servicios=[],clientes=[],facturas=[];
 var clientServicios=[];
 var overlayQueue=[],knownState={},initialLoaded=false,audioCtx=null;
+var recogidaClienteId=null;
 
 function puedeCambiar(d){return (role==='admin'||role==='lavanderia');}
 function permText(){return'🧺 Lavandería: Recoger · Pesar · Entregar';}
@@ -439,7 +440,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-I';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-J';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -556,7 +557,7 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
         +(role==='admin'&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
         +'</div>';
     }
-    return'<div class="order '+cls+'"><div class="ohead"><span class="cliente-tag">🏨 '+esc(s.clienteNombre||'S/C')+(s.recurrente?' 🔁':'')+'</span><span class="otime">'+ftime(s.createdAtLocal)+badge+'</span></div>'+
+    return'<div class="order '+cls+'"><div class="ohead"><span class="cliente-tag">🏨 '+esc(s.clienteNombre||'S/C')+(s.recurrente?' 🔁':'')+(s.creadoPor==='admin'?' 👔':'')+'</span><span class="otime">'+ftime(s.createdAtLocal)+badge+'</span></div>'+
       '<div class="oitems">'+escL(s.nota||'Sin nota')+'</div>'+
       lineaRecogida(s)+
       (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+prendasTxt+tsLine+extra+
@@ -728,7 +729,7 @@ function renderClientes(){var b=document.getElementById('clientesList');if(!b)re
     var nprecios=c.preciosPrendas?Object.keys(c.preciosPrendas).length:0;
     var recTxt=(c.recurrencia&&c.recurrencia.activo&&c.recurrencia.dias&&c.recurrencia.dias.length)?(' <span class="otime">· 🔁 '+c.recurrencia.dias.map(function(d){return DIAS[d-1];}).join(',')+'</span>'):'';
     return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.nombreComercial&&c.nombreComercial!==c.nombre?' <span class="otime">· '+esc(c.nombreComercial)+'</span>':'')+(c.nif?' <span class="otime">· NIF '+esc(c.nif)+'</span>':'')+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+(nprecios?' <span class="otime">· '+nprecios+' precio(s)</span>':'')+recTxt+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
-    '<div style="display:flex;gap:6px;"><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');}
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="abrirRecogidaModal(\''+c.id+'\')">🧺 Pedido</button><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');}
 
 function urlQRCliente(id){return location.origin+location.pathname+'?vista=cliente&cliente='+encodeURIComponent(id);}
 function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview');if(!pv)return;
@@ -745,25 +746,30 @@ function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview')
   });}
 function copiarURL(enc){var url=decodeURIComponent(enc);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(function(){showToast('✅ URL copiada','success');});else showToast(url);}
 
-// ============ SOLICITUD CON FECHA Y FRANJA ============
-function abrirRecogidaModal(){
+// ============ SOLICITUD CON FECHA Y FRANJA (cliente o admin por un cliente) ============
+function abrirRecogidaModal(clientId){
+  recogidaClienteId=clientId||null;
   var d=new Date();
   document.getElementById('recFecha').value=localISO(d);
   document.getElementById('recDesde').value='';
   document.getElementById('recHasta').value='';
   document.getElementById('recNota').value='';
+  var t=document.getElementById('recTitle');
+  if(t){var c=recogidaClienteId?clientById(recogidaClienteId):null;t.textContent='🧺 Solicitar recogida'+(c?' — '+esc(c.nombreComercial||c.nombre||''):'' );}
   document.getElementById('recogidaModal').classList.remove('hidden');}
-function cerrarRecogidaModal(){document.getElementById('recogidaModal').classList.add('hidden');}
+function cerrarRecogidaModal(){recogidaClienteId=null;document.getElementById('recogidaModal').classList.add('hidden');}
 function confirmarRecogida(){if(!requireFB())return;
+  var cid=recogidaClienteId||clienteIdFijo;
   var fecha=document.getElementById('recFecha').value;
   if(!fecha){showToast('⚠️ Elige la fecha de recogida','error');return;}
   var desde=document.getElementById('recDesde').value;
   var hasta=document.getElementById('recHasta').value;
   var nota=document.getElementById('recNota').value.trim();
-  var c=clientById(clienteIdFijo);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
+  var c=clientById(cid);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
+  var creadoPor=recogidaClienteId?'admin':'cliente';
   var id=newId();var now=nowLocal();
-  db.ref('servicios/'+id).set({clienteId:clienteIdFijo,clienteNombre:clienteNombre||c.nombre,nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,fechaRecogida:fecha,franjaDesde:desde,franjaHasta:hasta,tsSolicitado:now,createdAtLocal:now,updatedAtLocal:now})
-    .then(function(){cerrarRecogidaModal();showToast('✅ Solicitud enviada','success');});}
+  db.ref('servicios/'+id).set({clienteId:cid,clienteNombre:c.nombreComercial||c.nombre||'',nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:[],importeMaterial:0,materialEspecial:'',total:0,fechaRecogida:fecha,franjaDesde:desde,franjaHasta:hasta,creadoPor:creadoPor,tsSolicitado:now,createdAtLocal:now,updatedAtLocal:now})
+    .then(function(){recogidaClienteId=null;cerrarRecogidaModal();showToast('✅ Solicitud enviada','success');});}
 
 function generarRecurrentes(){
   if(!firebaseReady||!isStaff())return;
