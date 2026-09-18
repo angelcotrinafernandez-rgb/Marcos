@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L2 -->
+<!-- VERSION: LAV-2026-09-13-L3 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -126,6 +126,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <h1 id="menuTitle" style="margin-bottom:8px;">LavaExpressCanarias, S.L.U.</h1>
       <p style="color:var(--t2);margin-bottom:28px;">Selecciona tu rol</p>
       <button class="mbtn" onclick="mostrarLoginAdmin()"><span class="icon">👔</span><span>Administrador 🔐</span></button>
+      <button class="mbtn" onclick="mostrarLoginGer()"><span class="icon">💼</span><span>Gerencia 🔐</span></button>
       <button class="mbtn" onclick="goView('lavanderia')"><span class="icon">🧺</span><span>Lavandería</span></button>
       <p style="margin-top:24px;font-size:13px;color:var(--t3);">💡 Los clientes entran escaneando su QR</p>
     </div>
@@ -140,6 +141,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button class="btn btn-grey" onclick="cerrarLogin()">Cancelar</button>
         <button class="btn btn-gold" onclick="intentarLogin()" style="flex:1;">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginModalGer" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 style="margin-bottom:8px;">💼 Acceso Gerencia</h3>
+      <input class="input" id="loginUserGer" placeholder="Usuario"/>
+      <input class="input" id="loginPassGer" type="password" placeholder="Contraseña"/>
+      <div id="loginErrGer" style="color:var(--red);font-size:13px;margin-top:8px;min-height:20px;"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-grey" onclick="cerrarLoginGer()">Cancelar</button>
+        <button class="btn btn-gold" onclick="intentarLoginGer()" style="flex:1;">Entrar</button>
       </div>
     </div>
   </div>
@@ -178,7 +192,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L2</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L3</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -230,6 +244,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <input class="input" id="empCuenta" placeholder="Cuenta bancaria"/>
         <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
         <div class="otime" style="margin-top:8px;">El nombre fiscal se muestra en toda la web y en las facturas.</div>
+      </div>
+      <div class="card" id="cardCambiarPass">
+        <h3>🔑 Cambiar contraseña</h3>
+        <div id="cambiarPassAdmin">
+          <button class="btn btn-grey btn-sm" onclick="cambiarPasswordAdmin()">Cambiar contraseña Admin</button>
+        </div>
+        <div id="cambiarPassGer" style="margin-top:8px;">
+          <button class="btn btn-grey btn-sm" onclick="cambiarPasswordGer()">Cambiar contraseña Gerencia</button>
+        </div>
       </div>
       <div class="card">
         <h3>🗑️ Reset de datos de prueba</h3>
@@ -448,8 +471,8 @@ var urlVista=params.get('vista')||'',urlCliente=params.get('cliente')||'';
 var KEY_ROLE='lav_role',KEY_CID='lav_client_id',KEY_CLI='lav_cliente_id';
 var role='menu';
 if(urlCliente){role='cliente';localStorage.setItem(KEY_CLI,urlCliente);}
-else if(['admin','lavanderia'].indexOf(urlVista)!==-1){role=urlVista;localStorage.setItem(KEY_ROLE,role);}
-else{var sr=localStorage.getItem(KEY_ROLE);if(sr&&['admin','lavanderia','cliente'].indexOf(sr)!==-1)role=sr;}
+else if(['admin','gerencia','lavanderia'].indexOf(urlVista)!==-1){role=urlVista;localStorage.setItem(KEY_ROLE,role);}
+else{var sr=localStorage.getItem(KEY_ROLE);if(sr&&['admin','gerencia','lavanderia','cliente'].indexOf(sr)!==-1)role=sr;}
 var clientId=localStorage.getItem(KEY_CID);if(!clientId){clientId='c_'+Math.random().toString(36).slice(2)+'_'+Date.now();localStorage.setItem(KEY_CID,clientId);}
 var clienteIdFijo=urlCliente||localStorage.getItem(KEY_CLI)||'';
 var clienteNombre='';
@@ -463,7 +486,9 @@ var recPrendas=[];
 var currentTab='inicio';
 var limitServ=20,limitFac=15,limitCli=25;
 
-function puedeCambiar(d){return (role==='admin'||role==='lavanderia');}
+function esGerencia(){return role==='gerencia';}
+function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
+function puedeCambiar(d){return esAdminOGerencia()||role==='lavanderia';}
 function permText(){return'🧺 Lavandería: Recoger · Pesar · Entregar';}
 function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escL(v){return esc(v).replace(/\n/g,'<br>');}
@@ -477,11 +502,11 @@ function stClass(e){var m={SOLICITADO:'solicitado',RECOGIDO:'recogido',PESADO:'p
 function clientById(id){for(var i=0;i<clientes.length;i++)if(clientes[i].id===id)return clientes[i];return null;}
 function servicioPorId(id){for(var i=0;i<servicios.length;i++)if(servicios[i].id===id)return servicios[i];return null;}
 function facturaPorNumero(num){for(var i=0;i<facturas.length;i++)if(facturas[i].numero===num)return facturas[i];return null;}
-function isStaff(){return role==='lavanderia'||role==='admin';}
+function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L2';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L3';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -496,7 +521,10 @@ function diferenciaLine(s){if(s.pesoCliente==null)return'';
 
 function buildTabBar(){
   var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';
-  var tabs=role==='admin'?['inicio','servicios','clientes','contabilidad','ajustes']:['inicio','servicios'];
+  var tabs;
+  if(role==='admin'){tabs=['inicio','servicios','clientes','contabilidad','ajustes'];}
+  else if(role==='gerencia'){tabs=['inicio','servicios','clientes','ajustes'];}
+  else{tabs=['inicio','servicios'];}
   var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};
   tabs.forEach(function(t){
     var b=document.createElement('button');
@@ -514,7 +542,7 @@ function showTab(t){
   });
   var ia=document.getElementById('inicioAdminWrap');var isf=document.getElementById('inicioStaffWrap');
   if(t==='inicio'){
-    if(role==='admin'){ia.classList.remove('hidden');isf.classList.add('hidden');}
+    if(esAdminOGerencia()){ia.classList.remove('hidden');isf.classList.add('hidden');}
     else{ia.classList.add('hidden');isf.classList.remove('hidden');}
   }
   buildTabBar();
@@ -538,6 +566,7 @@ function detectChanges(){if(!isStaff())return;
 function goView(v){location.href=location.pathname+'?vista='+v;}
 function salir(){if(role==='cliente'){return;}
   else if(role==='admin'){sessionStorage.removeItem('admin_auth');localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
+  else if(role==='gerencia'){sessionStorage.removeItem('ger_auth');localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
   else{localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}}
 function toggleHistorial(){var p=document.getElementById('cartaPanel');if(p)p.classList.toggle('hidden');}
 
@@ -549,10 +578,24 @@ function intentarLogin(){var u=document.getElementById('loginUser').value.trim()
     if(!cfg){var dh=hashPassword('admin123');db.ref('config/admin').set({usuario:'admin',passwordHash:dh}).then(function(){verLogin(u,p,{usuario:'admin',passwordHash:dh},e);});}
     else verLogin(u,p,cfg,e);});}
 function verLogin(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('admin_auth','1');localStorage.setItem(KEY_ROLE,'admin');cerrarLogin();location.href=location.pathname+'?vista=admin';}else e.textContent='Credenciales incorrectas.';}
-function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña actual:');if(!a)return;
+
+function mostrarLoginGer(){document.getElementById('loginModalGer').classList.remove('hidden');document.getElementById('loginUserGer').focus();}
+function cerrarLoginGer(){document.getElementById('loginModalGer').classList.add('hidden');}
+function intentarLoginGer(){var u=document.getElementById('loginUserGer').value.trim(),p=document.getElementById('loginPassGer').value,e=document.getElementById('loginErrGer');
+  if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
+  db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();
+    if(!cfg){var dh=hashPassword('gerencia123');db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){verLoginGer(u,p,{usuario:'gerencia',passwordHash:dh},e);});}
+    else verLoginGer(u,p,cfg,e);});}
+function verLoginGer(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('ger_auth','1');localStorage.setItem(KEY_ROLE,'gerencia');cerrarLoginGer();location.href=location.pathname+'?vista=gerencia';}else e.textContent='Credenciales incorrectas.';}
+
+function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña actual de Admin:');if(!a)return;
   db.ref('config/admin').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
-    var n=prompt('Nueva (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
+    var n=prompt('Nueva contraseña (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
     db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
+function cambiarPasswordGer(){if(!requireFB())return;var a=prompt('Contraseña actual de Gerencia:');if(!a)return;
+  db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
+    var n=prompt('Nueva contraseña (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
+    db.ref('config/gerencia').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
 
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
   a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
@@ -565,16 +608,23 @@ function saveEmpresa(){if(!requireFB())return;
 function renderResumen(){var box=document.getElementById('resumenStats');if(!box)return;
   var now=new Date();var ym=now.getFullYear()+'-'+pad2(now.getMonth()+1);var yr=String(now.getFullYear());
   var activos=clientes.filter(function(c){return c.activo!==false;}).length;
-  var facMes=0,facYear=0;
-  facturas.forEach(function(f){var t=Number(f.total)||0;var fd=f.fecha||'';if(fd.indexOf(ym)===0)facMes+=t;if(fd.indexOf(yr)===0)facYear+=t;});
   var kgMes=0,kgYear=0;
   servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&s.tsPesado){var d=new Date(s.tsPesado);var sym=d.getFullYear()+'-'+pad2(d.getMonth()+1);var sy=String(d.getFullYear());var k=Number(s.kg)||0;if(sym===ym)kgMes+=k;if(sy===yr)kgYear+=k;}});
-  box.innerHTML=
-    '<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div>'+
-    '<div class="stat"><b>'+fp(facMes)+'</b><span>Facturado mes</span></div>'+
-    '<div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div>'+
-    '<div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>'+
-    '<div class="stat"><b>'+fp(facYear)+'</b><span>Facturado año</span></div>';}
+  if(esGerencia()){
+    box.innerHTML=
+      '<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div>'+
+      '<div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div>'+
+      '<div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>';
+  }else{
+    var facMes=0,facYear=0;
+    facturas.forEach(function(f){var t=Number(f.total)||0;var fd=f.fecha||'';if(fd.indexOf(ym)===0)facMes+=t;if(fd.indexOf(yr)===0)facYear+=t;});
+    box.innerHTML=
+      '<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div>'+
+      '<div class="stat"><b>'+fp(facMes)+'</b><span>Facturado mes</span></div>'+
+      '<div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div>'+
+      '<div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>'+
+      '<div class="stat"><b>'+fp(facYear)+'</b><span>Facturado año</span></div>';
+  }}
 
 function renderActividad(){var box=document.getElementById('actividadStats');if(!box)return;
   var sol=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;
@@ -604,7 +654,7 @@ function renderQuickClientes(){var s=document.getElementById('quickCliente');if(
   if(cur&&clientes.some(function(c){return c.id===cur;}))s.value=cur;}
 
 function resetDatos(){if(!requireFB())return;
-  if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, los datos de empresa y el acceso de admin se CONSERVAN.\n¿Continuar?'))return;
+  if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, los datos de empresa y el acceso admin se CONSERVAN.\n¿Continuar?'))return;
   var tec=prompt('Escribe BORRAR para confirmar el reset:');
   if(tec!=='BORRAR'){showToast('❌ Reset cancelado','error');return;}
   var ops=['servicios','facturas','facturasMensuales','syncProbe'].map(function(r){return db.ref(r).remove();});
@@ -624,6 +674,7 @@ function applyRole(){
   if(role==='menu'){mp.classList.remove('hidden');return;}
   if(role==='cliente'){cp.classList.remove('hidden');bs.style.display='none';return;}
   if(role==='admin'&&!sessionStorage.getItem('admin_auth')){mostrarLoginAdmin();return;}
+  if(role==='gerencia'&&!sessionStorage.getItem('ger_auth')){mostrarLoginGer();return;}
   bs.style.display='inline-flex';
   shell.classList.remove('hidden');
   buildTabBar();
@@ -634,6 +685,7 @@ function applyRole(){
 function renderAll(){
   if(isStaff()){detectChanges();renderStaffServicios();renderServiciosStats();}
   if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();}
+  if(role==='gerencia'){renderResumen();renderQuickClientes();renderClientes();renderEmpresa();}
   if(role==='lavanderia'){renderActividad();}
   if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();}
   updateSyncInfo();}
@@ -668,10 +720,10 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
     if(['RECOGIDO','PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1){
       var weighed=['PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1;
       extra='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'
-        +(role==='admin'?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')
+        +(esAdminOGerencia()?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')
         +(weighed?'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>':'')
-        +(role==='admin'&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')
-        +(role==='admin'&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
+        +(esAdminOGerencia()&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')
+        +(esAdminOGerencia()&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
         +'</div>';
     }
     return'<div class="order '+cls+'"><div class="ohead"><span class="cliente-tag">🏨 '+esc(s.clienteNombre||'S/C')+(s.recurrente?' 🔁':'')+(s.creadoPor==='admin'?' 👔':'')+'</span><span class="otime">'+ftime(s.createdAtLocal)+badge+'</span></div>'+
@@ -683,7 +735,7 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
   box.innerHTML=html;}
 
 function retrocederEstado(id){
-  if(role!=='admin'){showToast('⚠️ Solo el admin puede retroceder','error');return;}
+  if(!esAdminOGerencia()){showToast('⚠️ Solo admin/gerencia puede retroceder','error');return;}
   var s=servicioPorId(id);if(!s)return;
   var prev=null;
   if(s.estado==='ENTREGADO')prev='PESADO';
@@ -704,7 +756,7 @@ function retrocederEstado(id){
   Promise.all(ops).then(function(){showToast('✅ Servicio retrocedido a '+stLabel(prev),'success');})
     .catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
-function borrarServicio(id){if(role!=='admin'){showToast('⚠️ Solo el admin puede borrar','error');return;}
+function borrarServicio(id){if(!esAdminOGerencia()){showToast('⚠️ Solo admin/gerencia puede borrar','error');return;}
   if(!confirm('⚠️ Se borrará el servicio y su factura asociada.\n¿Continuar?'))return;
   var s=servicioPorId(id);if(!s)return;
   var ops=[db.ref('servicios/'+id).remove()];
@@ -1107,13 +1159,13 @@ function exportarExcel(){if(typeof XLSX==='undefined'){showToast('❌ Excel no c
 function subscribeAll(){if(!firebaseReady||!db)return;
   db.ref('config/empresa').on('value',function(s){var v=s.val();
     if(v){empresa.nombre=v.nombre||empresa.nombre;empresa.nif=v.nif||empresa.nif;empresa.direccion=v.direccion||empresa.direccion;empresa.cuenta=v.cuenta||empresa.cuenta;}
-    applyBrand();if(role==='admin')renderEmpresa();});
+    applyBrand();if(esAdminOGerencia())renderEmpresa();});
   db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
-    if(role==='admin'){renderClientes();renderResumen();renderQuickClientes();}
+    if(esAdminOGerencia()){renderClientes();renderResumen();renderQuickClientes();}
     if(role==='cliente')resolveClient();});
   db.ref('servicios').on('value',function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
     clientServicios=servicios.filter(function(o){return o.clienteId===clienteIdFijo;});
-    if(role==='admin')renderResumen();
+    if(esAdminOGerencia())renderResumen();
     renderAll();});
   db.ref('facturas').on('value',function(s){var d=s.val()||{};facturas=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});facturas.sort(function(a,b){return(b.timestamp||0)-(a.timestamp||0);});
     if(role==='admin'){renderContab();renderFacturas();renderResumen();}});
