@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L5 -->
+<!-- VERSION: LAV-2026-09-13-L6 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -124,36 +124,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
     <div class="menu">
       <div class="logo">🧺</div>
       <h1 id="menuTitle" style="margin-bottom:8px;">LavaExpressCanarias, S.L.U.</h1>
-      <p style="color:var(--t2);margin-bottom:28px;">Selecciona tu rol</p>
-      <button class="mbtn" onclick="mostrarLoginAdmin()"><span class="icon">👔</span><span>Administrador 🔐</span></button>
-      <button class="mbtn" onclick="mostrarLoginGer()"><span class="icon">💼</span><span>Gerencia 🔐</span></button>
+      <p style="color:var(--t2);margin-bottom:28px;">Selecciona cómo entrar</p>
       <button class="mbtn" onclick="goView('lavanderia')"><span class="icon">🧺</span><span>Lavandería</span></button>
+      <button class="mbtn" onclick="mostrarLogin()"><span class="icon">🔐</span><span>Acceso</span></button>
       <p style="margin-top:24px;font-size:13px;color:var(--t3);">💡 Los clientes entran escaneando su QR</p>
     </div>
   </section>
 
   <div id="loginModal" class="modal-overlay hidden">
     <div class="modal-content">
-      <h3 style="margin-bottom:8px;">🔐 Acceso Administrador</h3>
+      <h3 style="margin-bottom:8px;">🔐 Acceso</h3>
       <input class="input" id="loginUser" placeholder="Usuario"/>
       <input class="input" id="loginPass" type="password" placeholder="Contraseña"/>
       <div id="loginErr" style="color:var(--red);font-size:13px;margin-top:8px;min-height:20px;"></div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button class="btn btn-grey" onclick="cerrarLogin()">Cancelar</button>
         <button class="btn btn-gold" onclick="intentarLogin()" style="flex:1;">Entrar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="loginModalGer" class="modal-overlay hidden">
-    <div class="modal-content">
-      <h3 style="margin-bottom:8px;">💼 Acceso Gerencia</h3>
-      <input class="input" id="loginUserGer" placeholder="Usuario"/>
-      <input class="input" id="loginPassGer" type="password" placeholder="Contraseña"/>
-      <div id="loginErrGer" style="color:var(--red);font-size:13px;margin-top:8px;min-height:20px;"></div>
-      <div style="display:flex;gap:10px;margin-top:16px;">
-        <button class="btn btn-grey" onclick="cerrarLoginGer()">Cancelar</button>
-        <button class="btn btn-gold" onclick="intentarLoginGer()" style="flex:1;">Entrar</button>
       </div>
     </div>
   </div>
@@ -192,7 +178,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L5</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L6</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -244,18 +230,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
         <div class="otime" style="margin-top:8px;">El nombre fiscal se muestra en toda la web y en las facturas.</div>
       </div>
-      <div class="card" id="cardCredenciales">
-        <h3>🔑 Credenciales</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-grey btn-sm" onclick="cambiarPasswordAdmin()">Cambiar contraseña Admin</button>
-          <button class="btn btn-grey btn-sm" onclick="cambiarPasswordGer()">Cambiar contraseña Gerencia</button>
-          <button class="btn btn-red btn-sm" onclick="resetCredencialesGer()">Restablecer Gerencia</button>
+      <div class="card" id="cardUsuarios">
+        <h3>👥 Usuarios de acceso</h3>
+        <div id="usuariosList"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <input class="input" id="nuevoUsuario" placeholder="Nuevo usuario" style="flex:1;margin:0;"/>
+          <input class="input" id="nuevaPass" type="password" placeholder="Contraseña" style="flex:1;margin:0;"/>
+          <select class="input" id="nuevoRol" style="flex:1;margin:0;">
+            <option value="gerencia">Gerencia</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-gold btn-sm" onclick="crearUsuario()">➕ Crear</button>
         </div>
-        <div class="otime" style="margin-top:8px;">"Restablecer Gerencia" vuelve a poner usuario: <b>gerencia</b> y contraseña: <b>gerencia123</b>.<br/>Solo visible para Administrador.</div>
+        <div class="otime" style="margin-top:8px;">Crea o gestiona usuarios de acceso. Solo visible para Administrador.<br/>Por defecto: <b>admin/admin123</b> y <b>gerencia/gerencia123</b>.</div>
       </div>
       <div class="card">
         <h3>🗑️ Reset de datos de prueba</h3>
-        <div class="otime" style="margin-bottom:10px;">Borra servicios, facturas, facturas mensuales y contadores. <b>Conserva</b> clientes, empresa y acceso admin.</div>
+        <div class="otime" style="margin-bottom:10px;">Borra servicios, facturas, facturas mensuales y contadores. <b>Conserva</b> clientes, empresa y usuarios.</div>
         <button class="btn btn-red" onclick="resetDatos()">🗑️ Borrar datos de prueba</button>
       </div>
     </div>
@@ -505,7 +496,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L5';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L6';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -564,41 +555,99 @@ function detectChanges(){if(!isStaff())return;
 
 function goView(v){location.href=location.pathname+'?vista='+v;}
 function salir(){if(role==='cliente'){return;}
-  else if(role==='admin'){sessionStorage.removeItem('admin_auth');localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
-  else if(role==='gerencia'){sessionStorage.removeItem('ger_auth');localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
-  else{localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}}
+  sessionStorage.removeItem('lav_auth');
+  localStorage.removeItem(KEY_ROLE);
+  location.href=location.pathname;}
 function toggleHistorial(){var p=document.getElementById('cartaPanel');if(p)p.classList.toggle('hidden');}
 
-function mostrarLoginAdmin(){document.getElementById('loginModal').classList.remove('hidden');document.getElementById('loginUser').focus();}
+function mostrarLogin(){
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('loginUser').focus();}
 function cerrarLogin(){document.getElementById('loginModal').classList.add('hidden');}
-function intentarLogin(){var u=document.getElementById('loginUser').value.trim(),p=document.getElementById('loginPass').value.trim(),e=document.getElementById('loginErr');
-  if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
-  db.ref('config/admin').once('value').then(function(s){var cfg=s.val();
-    if(!cfg){var dh=hashPassword('admin123');db.ref('config/admin').set({usuario:'admin',passwordHash:dh}).then(function(){verLogin(u,p,{usuario:'admin',passwordHash:dh},e);}).catch(function(err){e.textContent='Error al crear configuración: '+err.message;});}
-    else verLogin(u,p,cfg,e);});}
-function verLogin(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('admin_auth','1');localStorage.setItem(KEY_ROLE,'admin');cerrarLogin();location.href=location.pathname+'?vista=admin';}else e.textContent='Credenciales incorrectas.';}
+function inicializarUsuarios(cb){
+  var updates={};
+  updates['admin']={passwordHash:hashPassword('admin123'),rol:'admin'};
+  updates['gerencia']={passwordHash:hashPassword('gerencia123'),rol:'gerencia'};
+  db.ref('config/usuarios').update(updates).then(function(){if(cb)cb();});}
+function intentarLogin(){
+  var u=document.getElementById('loginUser').value.trim().toLowerCase();
+  var p=document.getElementById('loginPass').value.trim();
+  var e=document.getElementById('loginErr');
+  if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}
+  if(!requireFB())return;
+  db.ref('config/usuarios').once('value').then(function(s){
+    var usuarios=s.val();
+    if(!usuarios||Object.keys(usuarios).length===0){
+      inicializarUsuarios(function(){
+        db.ref('config/usuarios/'+u).once('value').then(function(su){
+          var user=su.val();
+          if(!user){e.textContent='Usuario no encontrado.';return;}
+          if(hashPassword(p)!==user.passwordHash){e.textContent='Contraseña incorrecta.';return;}
+          loginExito(user);
+        });
+      });
+      return;
+    }
+    var user=usuarios[u];
+    if(!user){e.textContent='Usuario no encontrado.';return;}
+    if(hashPassword(p)!==user.passwordHash){e.textContent='Contraseña incorrecta.';return;}
+    loginExito(user);
+  });}
+function loginExito(user){
+  var rol=user.rol;
+  sessionStorage.setItem('lav_auth',rol);
+  localStorage.setItem(KEY_ROLE,rol);
+  cerrarLogin();
+  location.href=location.pathname+'?vista='+rol;}
 
-function mostrarLoginGer(){document.getElementById('loginModalGer').classList.remove('hidden');document.getElementById('loginUserGer').focus();}
-function cerrarLoginGer(){document.getElementById('loginModalGer').classList.add('hidden');}
-function intentarLoginGer(){var u=document.getElementById('loginUserGer').value.trim(),p=document.getElementById('loginPassGer').value.trim(),e=document.getElementById('loginErrGer');
-  if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
-  db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();
-    if(!cfg){var dh=hashPassword('gerencia123');db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){verLoginGer(u,p,{usuario:'gerencia',passwordHash:dh},e);}).catch(function(err){e.textContent='Error al crear configuración: '+err.message;});}
-    else verLoginGer(u,p,cfg,e);});}
-function verLoginGer(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('ger_auth','1');localStorage.setItem(KEY_ROLE,'gerencia');cerrarLoginGer();location.href=location.pathname+'?vista=gerencia';}else e.textContent='Credenciales incorrectas.';}
-
-function cambiarPasswordAdmin(){if(!requireFB())return;var a=prompt('Contraseña actual de Admin:');if(!a)return;
-  db.ref('config/admin').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
-    var n=prompt('Nueva contraseña (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
-    db.ref('config/admin').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
-function cambiarPasswordGer(){if(!requireFB())return;var a=prompt('Contraseña actual de Gerencia:');if(!a)return;
-  db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
-    var n=prompt('Nueva contraseña (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
-    db.ref('config/gerencia').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
-function resetCredencialesGer(){if(!requireFB())return;
-  if(!confirm('⚠️ Esto restablecerá las credenciales de Gerencia a los valores por defecto (gerencia/gerencia123). ¿Continuar?'))return;
-  var dh=hashPassword('gerencia123');
-  db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){showToast('✅ Credenciales de Gerencia restablecidas','success');}).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
+function renderUsuariosList(usuarios){
+  var b=document.getElementById('usuariosList');if(!b)return;
+  usuarios=usuarios||{};
+  var keys=Object.keys(usuarios);
+  var adminCount=keys.filter(function(k){return usuarios[k].rol==='admin';}).length;
+  if(!keys.length){b.innerHTML='<div class="empty">No hay usuarios.</div>';return;}
+  b.innerHTML=keys.map(function(k){
+    var u=usuarios[k];
+    var rolLabel=u.rol==='admin'?'👔 Admin':'💼 Gerencia';
+    var esUltimoAdmin=(u.rol==='admin'&&adminCount<=1);
+    var deleteBtn=esUltimoAdmin?'':'<button class="btn btn-red btn-sm" onclick="borrarUsuario(\''+esc(k)+'\')">🗑️</button>';
+    return '<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;">'+
+      '<div style="flex:1;"><b>'+esc(k)+'</b> <span class="otime">· '+rolLabel+'</span></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+        '<button class="btn btn-grey btn-sm" onclick="cambiarPassUsuario(\''+esc(k)+'\')">🔑 Contraseña</button>'+
+        deleteBtn+
+      '</div>'+
+    '</div>';
+  }).join('');}
+function crearUsuario(){
+  if(!requireFB())return;
+  var u=document.getElementById('nuevoUsuario').value.trim().toLowerCase();
+  var p=document.getElementById('nuevaPass').value;
+  var r=document.getElementById('nuevoRol').value;
+  if(!u||!p){showToast('⚠️ Usuario y contraseña obligatorios','error');return;}
+  if(!/^[a-z0-9_]+$/.test(u)){showToast('⚠️ Usuario: solo letras/números, sin espacios','error');return;}
+  if(p.length<4){showToast('⚠️ Contraseña mín 4 caracteres','error');return;}
+  db.ref('config/usuarios/'+u).once('value').then(function(s){
+    if(s.val()){showToast('⚠️ Ese usuario ya existe','error');return;}
+    db.ref('config/usuarios/'+u).set({passwordHash:hashPassword(p),rol:r}).then(function(){
+      showToast('✅ Usuario creado','success');
+      document.getElementById('nuevoUsuario').value='';
+      document.getElementById('nuevaPass').value='';
+    });
+  });}
+function cambiarPassUsuario(k){
+  if(!requireFB())return;
+  var n=prompt('Nueva contraseña para "'+k+'" (mín 4):');
+  if(!n)return;
+  if(n.length<4){showToast('⚠️ Contraseña muy corta','error');return;}
+  db.ref('config/usuarios/'+k).update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});}
+function borrarUsuario(k){
+  if(!requireFB())return;
+  if(!confirm('¿Borrar el usuario "'+k+'"?'))return;
+  db.ref('config/usuarios/'+k).remove().then(function(){showToast('✅ Usuario borrado','success');});}
 
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
   a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
@@ -657,7 +706,7 @@ function renderQuickClientes(){var s=document.getElementById('quickCliente');if(
   if(cur&&clientes.some(function(c){return c.id===cur;}))s.value=cur;}
 
 function resetDatos(){if(!requireFB())return;
-  if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, los datos de empresa y el acceso admin se CONSERVAN.\n¿Continuar?'))return;
+  if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, la empresa y los usuarios se CONSERVAN.\n¿Continuar?'))return;
   var tec=prompt('Escribe BORRAR para confirmar el reset:');
   if(tec!=='BORRAR'){showToast('❌ Reset cancelado','error');return;}
   var ops=['servicios','facturas','facturasMensuales','syncProbe'].map(function(r){return db.ref(r).remove();});
@@ -676,14 +725,13 @@ function applyRole(){
   rb.textContent=role==='menu'?'-':role.toUpperCase();rb.className='role'+(role==='cliente'?' cliente':'');
   if(role==='menu'){mp.classList.remove('hidden');return;}
   if(role==='cliente'){cp.classList.remove('hidden');bs.style.display='none';return;}
-  if(role==='admin'&&!sessionStorage.getItem('admin_auth')){mostrarLoginAdmin();return;}
-  if(role==='gerencia'&&!sessionStorage.getItem('ger_auth')){mostrarLoginGer();return;}
+  if((role==='admin'||role==='gerencia')&&sessionStorage.getItem('lav_auth')!==role){mostrarLogin();return;}
   bs.style.display='inline-flex';
   shell.classList.remove('hidden');
-  var cardCred=document.getElementById('cardCredenciales');
-  if(cardCred){
-    if(role==='gerencia'){cardCred.classList.add('hidden');}
-    else{cardCred.classList.remove('hidden');}
+  var cardUsuarios=document.getElementById('cardUsuarios');
+  if(cardUsuarios){
+    if(role==='admin'){cardUsuarios.classList.remove('hidden');}
+    else{cardUsuarios.classList.add('hidden');}
   }
   buildTabBar();
   showTab('inicio');
@@ -1168,6 +1216,9 @@ function subscribeAll(){if(!firebaseReady||!db)return;
   db.ref('config/empresa').on('value',function(s){var v=s.val();
     if(v){empresa.nombre=v.nombre||empresa.nombre;empresa.nif=v.nif||empresa.nif;empresa.direccion=v.direccion||empresa.direccion;empresa.cuenta=v.cuenta||empresa.cuenta;}
     applyBrand();if(esAdminOGerencia())renderEmpresa();});
+  if(role==='admin'){
+    db.ref('config/usuarios').on('value',function(s){renderUsuariosList(s.val());});
+  }
   db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
     if(esAdminOGerencia()){renderClientes();renderResumen();renderQuickClientes();}
     if(role==='cliente')resolveClient();});
