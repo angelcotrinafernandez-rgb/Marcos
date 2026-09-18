@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L -->
+<!-- VERSION: LAV-2026-09-13-L2 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -178,7 +178,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L2</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -481,7 +481,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L2';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -494,7 +494,6 @@ function diferenciaLine(s){if(s.pesoCliente==null)return'';
   var dv=(s.kg!=null?Math.round((s.kg-s.pesoCliente)*100)/100:null);
   return '<div class="otime" style="margin-top:4px;">⚖️ Peso cliente '+s.pesoCliente+' kg'+(s.kg!=null?' · Lavandería '+s.kg+' kg':'')+(dv!=null?' · <span style="font-weight:700;color:'+(dv!==0?'var(--red)':'var(--green)')+';">Dif. '+dv+' kg</span>':'')+'</div>';}
 
-// ============ PESTAÑAS ============
 function buildTabBar(){
   var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';
   var tabs=role==='admin'?['inicio','servicios','clientes','contabilidad','ajustes']:['inicio','servicios'];
@@ -1110,10 +1109,14 @@ function subscribeAll(){if(!firebaseReady||!db)return;
     if(v){empresa.nombre=v.nombre||empresa.nombre;empresa.nif=v.nif||empresa.nif;empresa.direccion=v.direccion||empresa.direccion;empresa.cuenta=v.cuenta||empresa.cuenta;}
     applyBrand();if(role==='admin')renderEmpresa();});
   db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
-    if(role==='admin')renderClientes();if(role==='cliente')resolveClient();});
+    if(role==='admin'){renderClientes();renderResumen();renderQuickClientes();}
+    if(role==='cliente')resolveClient();});
   db.ref('servicios').on('value',function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
-    clientServicios=servicios.filter(function(o){return o.clienteId===clienteIdFijo;});renderAll();});
-  db.ref('facturas').on('value',function(s){var d=s.val()||{};facturas=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});facturas.sort(function(a,b){return(b.timestamp||0)-(a.timestamp||0);});if(role==='admin'){renderContab();renderFacturas();}});
+    clientServicios=servicios.filter(function(o){return o.clienteId===clienteIdFijo;});
+    if(role==='admin')renderResumen();
+    renderAll();});
+  db.ref('facturas').on('value',function(s){var d=s.val()||{};facturas=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});facturas.sort(function(a,b){return(b.timestamp||0)-(a.timestamp||0);});
+    if(role==='admin'){renderContab();renderFacturas();renderResumen();}});
   listenProbe();}
 
 setInterval(function(){if(isStaff())renderStaffServicios();},30000);
