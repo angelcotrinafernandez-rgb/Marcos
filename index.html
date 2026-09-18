@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-K -->
+<!-- VERSION: LAV-2026-09-13-L -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -37,6 +37,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
 .stat b{font-size:22px;color:var(--gold);display:block;} .stat span{font-size:11px;color:var(--t2);text-transform:uppercase;}
+.tabbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;position:sticky;top:60px;z-index:50;background:var(--bg);padding:10px 0 8px;}
+.tabbtn{padding:8px 14px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);color:var(--t2);font-weight:600;cursor:pointer;font-size:13px;transition:all .15s;}
+.tabbtn.active{background:var(--gold);color:#000;border-color:var(--gold);}
+.tabpane.hidden{display:none;}
 .order{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:12px;padding:16px;margin-bottom:12px;transition:all .2s;}
 .order.recogido{border-left-color:var(--gold);} .order.pesado{border-left-color:var(--green);}
 .order.entregado{border-left-color:var(--purple);opacity:.85;} .order.cancelado{border-left-color:var(--red);opacity:.7;}
@@ -98,7 +102,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .dif-badge{padding:4px 10px;border-radius:6px;background:var(--bg2);font-size:12px;color:var(--t2);}
 .debug-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;}
 .debug-line{padding:2px 0;color:var(--t2);} .debug-line.error{color:var(--red);} .debug-line.success{color:var(--green);}
-@media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}}
+@media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}.tabbar{top:56px;}}
 </style>
 </head>
 <body>
@@ -140,83 +144,98 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
     </div>
   </div>
 
-  <section id="staffPanel" class="hidden">
-    <div class="card">
-      <h3>🧺 Servicios en tiempo real <button class="btn btn-grey btn-sm" style="margin-left:auto;" onclick="forceRefresh()">🔄</button></h3>
-      <div class="permnote" id="permTxt"></div>
-      <div id="staffServicios"><div class="empty">Esperando servicios...</div></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><b id="stSol">0</b><span>Solicitudes</span></div>
-      <div class="stat"><b id="stRec">0</b><span>Recogidos</span></div>
-      <div class="stat"><b id="stPes">0</b><span>Pesados</span></div>
-      <div class="stat"><b id="stCli">0</b><span>Clientes</span></div>
-    </div>
-    <div class="card">
-      <h3>🔧 Diagnóstico y sincronización <button class="btn btn-grey btn-sm" style="margin-left:auto;" onclick="toggleDebug()">Mostrar/Ocultar</button></h3>
-      <div id="syncError" class="syncerr hidden"></div>
-      <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
-      <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
-      <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-      <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 K</div>
-      <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
-    </div>
-  </section>
+  <section id="staffShell" class="hidden">
+    <div class="tabbar" id="tabBar"></div>
 
-  <section id="adminPanel" class="hidden">
-    <div class="card">
-      <h3>📌 Resumen</h3>
-      <div class="stats" id="resumenStats"></div>
-    </div>
-    <div class="card">
-      <h3>📊 Contabilidad <button class="btn btn-gold btn-sm" style="margin-left:auto;" onclick="exportarExcel()">📥 Excel</button></h3>
-      <div class="stats">
-        <div class="stat"><b id="contDia" style="font-size:20px;">0,00 €</b><span>Hoy</span></div>
-        <div class="stat"><b id="contSem" style="font-size:20px;">0,00 €</b><span>Semana</span></div>
-        <div class="stat"><b id="contMes" style="font-size:20px;">0,00 €</b><span>Mes</span></div>
-        <div class="stat"><b id="contTot" style="font-size:20px;">0,00 €</b><span>Total</span></div>
+    <div class="tabpane hidden" id="pane-inicio">
+      <div id="inicioAdminWrap">
+        <div class="card"><h3>📌 Resumen</h3><div class="stats" id="resumenStats"></div></div>
+        <div class="card">
+          <h3>🧺 Pedido rápido</h3>
+          <div class="otime" style="margin-bottom:8px;">Elige un cliente y crea la solicitud sin recorrer la lista.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select class="input" id="quickCliente" style="flex:2;margin:0;"></select>
+            <button class="btn btn-gold" onclick="quickPedido()">🧺 Hacer pedido</button>
+          </div>
+        </div>
       </div>
-      <div id="facturasList" style="margin-top:12px;"></div>
-      <button class="btn btn-grey btn-sm" style="margin-top:12px;" onclick="cambiarPasswordAdmin()">🔑 Cambiar contraseña</button>
-    </div>
-
-    <div class="card">
-      <h3>🏢 Datos de la empresa</h3>
-      <input class="input" id="empNombre" placeholder="Nombre fiscal"/>
-      <input class="input" id="empNif" placeholder="NIF/CIF"/>
-      <input class="input" id="empDireccion" placeholder="Dirección"/>
-      <input class="input" id="empCuenta" placeholder="Cuenta bancaria"/>
-      <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
-      <div class="otime" style="margin-top:8px;">El nombre fiscal se muestra en toda la web y en las facturas.</div>
-    </div>
-
-    <div class="card">
-      <h3>📄 Factura mensual (PDF)</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-        <select class="input" id="fmCliente"></select>
-        <select class="input" id="fmMes"></select>
+      <div id="inicioStaffWrap" class="hidden">
+        <div class="card"><h3>📌 Actividad</h3><div class="stats" id="actividadStats"></div></div>
+        <div class="card"><button class="btn btn-gold btn-block" onclick="showTab('servicios')">🧺 Ir a servicios</button></div>
       </div>
-      <button class="btn btn-gold" onclick="adminGenerarFM()">📄 Generar y descargar PDF</button>
-      <div class="otime" style="margin-top:8px;">Agrupa los servicios por la fecha de pesaje.</div>
     </div>
 
-    <div class="card">
-      <h3>🏨 Clientes</h3>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" style="flex:1;"/>
-        <button class="btn btn-gold" onclick="importClientes(document.getElementById('importExcel'))">📥 Importar Excel</button>
-        <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
-        <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
+    <div class="tabpane hidden" id="pane-servicios">
+      <div class="stats" id="serviciosStats"></div>
+      <div class="card">
+        <h3>🧺 Servicios en tiempo real <button class="btn btn-grey btn-sm" style="margin-left:auto;" onclick="forceRefresh()">🔄</button></h3>
+        <div class="permnote" id="permTxt"></div>
+        <div id="staffServicios"><div class="empty">Esperando servicios...</div></div>
       </div>
-      <div class="otime" style="margin-bottom:10px;">Botón "🧺 Pedido": crea una solicitud en nombre del cliente (entra como SOLICITADO).</div>
-      <div id="clientesList"></div>
-      <div id="qrClientesPreview" class="hidden"></div>
+      <div class="card">
+        <h3>🔧 Diagnóstico <button class="btn btn-grey btn-sm" style="margin-left:auto;" onclick="toggleDebug()">Mostrar/Ocultar</button></h3>
+        <div id="syncError" class="syncerr hidden"></div>
+        <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
+        <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
+        <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L</div>
+        <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>🗑️ Reset de datos de prueba</h3>
-      <div class="otime" style="margin-bottom:10px;">Borra servicios, facturas, facturas mensuales y contadores. <b>Conserva</b> clientes, empresa y acceso admin.</div>
-      <button class="btn btn-red" onclick="resetDatos()">🗑️ Borrar datos de prueba</button>
+    <div class="tabpane hidden" id="pane-clientes">
+      <div class="card">
+        <h3>🏨 Clientes</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" style="flex:1;"/>
+          <button class="btn btn-gold" onclick="importClientes(document.getElementById('importExcel'))">📥 Importar Excel</button>
+          <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
+          <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
+        </div>
+        <div class="otime" style="margin-bottom:10px;">Botón "🧺 Pedido": crea una solicitud en nombre del cliente (entra como SOLICITADO).</div>
+        <div id="clientesList"></div>
+        <div id="qrClientesPreview" class="hidden"></div>
+      </div>
+    </div>
+
+    <div class="tabpane hidden" id="pane-contabilidad">
+      <div class="card">
+        <h3>📊 Contabilidad <button class="btn btn-gold btn-sm" style="margin-left:auto;" onclick="exportarExcel()">📥 Excel</button></h3>
+        <div class="stats">
+          <div class="stat"><b id="contDia" style="font-size:20px;">0,00 €</b><span>Hoy</span></div>
+          <div class="stat"><b id="contSem" style="font-size:20px;">0,00 €</b><span>Semana</span></div>
+          <div class="stat"><b id="contMes" style="font-size:20px;">0,00 €</b><span>Mes</span></div>
+          <div class="stat"><b id="contTot" style="font-size:20px;">0,00 €</b><span>Total</span></div>
+        </div>
+        <div id="facturasList" style="margin-top:12px;"></div>
+        <button class="btn btn-grey btn-sm" style="margin-top:12px;" onclick="cambiarPasswordAdmin()">🔑 Cambiar contraseña</button>
+      </div>
+      <div class="card">
+        <h3>📄 Factura mensual (PDF)</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <select class="input" id="fmCliente"></select>
+          <select class="input" id="fmMes"></select>
+        </div>
+        <button class="btn btn-gold" onclick="adminGenerarFM()">📄 Generar y descargar PDF</button>
+        <div class="otime" style="margin-top:8px;">Agrupa los servicios por la fecha de pesaje.</div>
+      </div>
+    </div>
+
+    <div class="tabpane hidden" id="pane-ajustes">
+      <div class="card">
+        <h3>🏢 Datos de la empresa</h3>
+        <input class="input" id="empNombre" placeholder="Nombre fiscal"/>
+        <input class="input" id="empNif" placeholder="NIF/CIF"/>
+        <input class="input" id="empDireccion" placeholder="Dirección"/>
+        <input class="input" id="empCuenta" placeholder="Cuenta bancaria"/>
+        <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
+        <div class="otime" style="margin-top:8px;">El nombre fiscal se muestra en toda la web y en las facturas.</div>
+      </div>
+      <div class="card">
+        <h3>🗑️ Reset de datos de prueba</h3>
+        <div class="otime" style="margin-bottom:10px;">Borra servicios, facturas, facturas mensuales y contadores. <b>Conserva</b> clientes, empresa y acceso admin.</div>
+        <button class="btn btn-red" onclick="resetDatos()">🗑️ Borrar datos de prueba</button>
+      </div>
     </div>
   </section>
 
@@ -441,6 +460,8 @@ var clientServicios=[];
 var overlayQueue=[],knownState={},initialLoaded=false,audioCtx=null;
 var recogidaClienteId=null;
 var recPrendas=[];
+var currentTab='inicio';
+var limitServ=20,limitFac=15,limitCli=25;
 
 function puedeCambiar(d){return (role==='admin'||role==='lavanderia');}
 function permText(){return'🧺 Lavandería: Recoger · Pesar · Entregar';}
@@ -460,7 +481,7 @@ function isStaff(){return role==='lavanderia'||role==='admin';}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-K';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -472,6 +493,36 @@ function nextNumeroFactura(cb){db.ref('config/contadorFactura').transaction(func
 function diferenciaLine(s){if(s.pesoCliente==null)return'';
   var dv=(s.kg!=null?Math.round((s.kg-s.pesoCliente)*100)/100:null);
   return '<div class="otime" style="margin-top:4px;">⚖️ Peso cliente '+s.pesoCliente+' kg'+(s.kg!=null?' · Lavandería '+s.kg+' kg':'')+(dv!=null?' · <span style="font-weight:700;color:'+(dv!==0?'var(--red)':'var(--green)')+';">Dif. '+dv+' kg</span>':'')+'</div>';}
+
+// ============ PESTAÑAS ============
+function buildTabBar(){
+  var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';
+  var tabs=role==='admin'?['inicio','servicios','clientes','contabilidad','ajustes']:['inicio','servicios'];
+  var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};
+  tabs.forEach(function(t){
+    var b=document.createElement('button');
+    b.className='tabbtn'+(t===currentTab?' active':'');
+    b.textContent=labels[t];
+    b.onclick=function(){showTab(t);};
+    bar.appendChild(b);
+  });
+}
+function showTab(t){
+  currentTab=t;
+  ['inicio','servicios','clientes','contabilidad','ajustes'].forEach(function(p){
+    var el=document.getElementById('pane-'+p);
+    if(el)el.classList.toggle('hidden',p!==t);
+  });
+  var ia=document.getElementById('inicioAdminWrap');var isf=document.getElementById('inicioStaffWrap');
+  if(t==='inicio'){
+    if(role==='admin'){ia.classList.remove('hidden');isf.classList.add('hidden');}
+    else{ia.classList.add('hidden');isf.classList.remove('hidden');}
+  }
+  buildTabBar();
+}
+function quickPedido(){var sel=document.getElementById('quickCliente');var cid=sel?sel.value:'';
+  if(!cid){showToast('⚠️ Elige un cliente','error');return;}
+  abrirRecogidaModal(cid);}
 
 function showOverlay(){if(!overlayQueue.length)return;
   document.getElementById('otitle').textContent=overlayQueue.length>1?'🔔 AVISOS':'🔔 NUEVA SOLICITUD';
@@ -526,6 +577,33 @@ function renderResumen(){var box=document.getElementById('resumenStats');if(!box
     '<div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>'+
     '<div class="stat"><b>'+fp(facYear)+'</b><span>Facturado año</span></div>';}
 
+function renderActividad(){var box=document.getElementById('actividadStats');if(!box)return;
+  var sol=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;
+  var rec=servicios.filter(function(s){return s.estado==='RECOGIDO';}).length;
+  var pes=servicios.filter(function(s){return s.estado==='PESADO';}).length;
+  var ent=servicios.filter(function(s){return s.estado==='ENTREGADO';}).length;
+  box.innerHTML=
+    '<div class="stat"><b>'+sol+'</b><span>Solicitudes</span></div>'+
+    '<div class="stat"><b>'+rec+'</b><span>Recogidos</span></div>'+
+    '<div class="stat"><b>'+pes+'</b><span>Pesados</span></div>'+
+    '<div class="stat"><b>'+ent+'</b><span>Entregados</span></div>';}
+
+function renderServiciosStats(){var box=document.getElementById('serviciosStats');if(!box)return;
+  var sol=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;
+  var rec=servicios.filter(function(s){return s.estado==='RECOGIDO';}).length;
+  var pes=servicios.filter(function(s){return s.estado==='PESADO';}).length;
+  var ent=servicios.filter(function(s){return s.estado==='ENTREGADO';}).length;
+  box.innerHTML=
+    '<div class="stat"><b>'+sol+'</b><span>Solicitudes</span></div>'+
+    '<div class="stat"><b>'+rec+'</b><span>Recogidos</span></div>'+
+    '<div class="stat"><b>'+pes+'</b><span>Pesados</span></div>'+
+    '<div class="stat"><b>'+ent+'</b><span>Entregados</span></div>';}
+
+function renderQuickClientes(){var s=document.getElementById('quickCliente');if(!s)return;
+  var cur=s.value;
+  s.innerHTML='<option value="">— Elegir cliente —</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+  if(cur&&clientes.some(function(c){return c.id===cur;}))s.value=cur;}
+
 function resetDatos(){if(!requireFB())return;
   if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, los datos de empresa y el acceso de admin se CONSERVAN.\n¿Continuar?'))return;
   var tec=prompt('Escribe BORRAR para confirmar el reset:');
@@ -540,27 +618,28 @@ function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo
   clienteNombre=c.nombreComercial||c.nombre||'';
   var tag=document.getElementById('clienteTag'),txt=document.getElementById('clienteTagText');if(tag&&txt){tag.style.display='inline-flex';txt.textContent=clienteNombre;}}
 
-function applyRole(){var mp=document.getElementById('menuPanel'),sp=document.getElementById('staffPanel'),ap=document.getElementById('adminPanel'),cp=document.getElementById('clientPanel'),bs=document.getElementById('btnSalir'),rb=document.getElementById('roleBadge');
-  mp.classList.add('hidden');sp.classList.add('hidden');ap.classList.add('hidden');cp.classList.add('hidden');bs.style.display='none';
+function applyRole(){
+  var mp=document.getElementById('menuPanel'),shell=document.getElementById('staffShell'),cp=document.getElementById('clientPanel'),bs=document.getElementById('btnSalir'),rb=document.getElementById('roleBadge');
+  mp.classList.add('hidden');shell.classList.add('hidden');cp.classList.add('hidden');bs.style.display='none';
   rb.textContent=role==='menu'?'-':role.toUpperCase();rb.className='role'+(role==='cliente'?' cliente':'');
   if(role==='menu'){mp.classList.remove('hidden');return;}
   if(role==='cliente'){cp.classList.remove('hidden');bs.style.display='none';return;}
+  if(role==='admin'&&!sessionStorage.getItem('admin_auth')){mostrarLoginAdmin();return;}
   bs.style.display='inline-flex';
-  if(role==='admin'){if(!sessionStorage.getItem('admin_auth')){mostrarLoginAdmin();return;}sp.classList.remove('hidden');ap.classList.remove('hidden');}
-  else{sp.classList.remove('hidden');}
-  updateSyncInfo();}
+  shell.classList.remove('hidden');
+  buildTabBar();
+  showTab('inicio');
+  updateSyncInfo();
+}
 
 function renderAll(){
-  if(isStaff()){detectChanges();renderStaffServicios();renderStats();var pt=document.getElementById('permTxt');if(pt)pt.textContent=permText();}
-  if(role==='admin'){renderResumen();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();}
+  if(isStaff()){detectChanges();renderStaffServicios();renderServiciosStats();}
+  if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();}
+  if(role==='lavanderia'){renderActividad();}
   if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();}
   updateSyncInfo();}
-function renderStats(){var e1=document.getElementById('stSol'),e2=document.getElementById('stRec'),e3=document.getElementById('stPes'),e4=document.getElementById('stCli');
-  if(e1)e1.textContent=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;
-  if(e2)e2.textContent=servicios.filter(function(s){return s.estado==='RECOGIDO';}).length;
-  if(e3)e3.textContent=servicios.filter(function(s){return s.estado==='PESADO';}).length;
-  if(e4)e4.textContent=clientes.length;}
 
+function verMasServ(){limitServ+=20;renderStaffServicios();}
 function botonesPara(s){var b='';
   if(s.estado==='SOLICITADO'&&puedeCambiar('RECOGIDO'))b+='<button class="btn btn-gold btn-sm" onclick="cambiarEstado(\''+s.id+'\',\'RECOGIDO\')">🚚 Recoger</button>';
   if(s.estado==='RECOGIDO'&&puedeCambiar('PESADO'))b+='<button class="btn btn-green btn-sm" onclick="abrirPesarModal(\''+s.id+'\')">⚖️ Pesar</button>';
@@ -574,7 +653,8 @@ function lineaRecogida(s){if(!s.fechaRecogida)return'';
 function renderStaffServicios(){var box=document.getElementById('staffServicios');if(!box)return;
   var list=servicios.slice().sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});
   if(!list.length){box.innerHTML='<div class="empty">Esperando servicios...</div>';return;}
-  box.innerHTML=list.map(function(s){var cls=stClass(s.estado),badge='';
+  var shown=list.slice(0,limitServ);
+  var html=shown.map(function(s){var cls=stClass(s.estado),badge='';
     if(['CANCELADO'].indexOf(s.estado)===-1&&s.createdAtLocal){var m=Math.floor((Date.now()-s.createdAtLocal)/60000);
       if(m>=60){cls+=' age-red';badge='<span class="ageb" style="color:var(--red)">🔴 '+m+' min</span>';}
       else if(m>=30){cls+=' age-orange';badge='<span class="ageb" style="color:var(--gold)">🟠 '+m+' min</span>';}}
@@ -599,7 +679,9 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
       '<div class="oitems">'+escL(s.nota||'Sin nota')+'</div>'+
       lineaRecogida(s)+diferenciaLine(s)+
       (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+prendasTxt+tsLine+extra+
-      '<div class="ofoot" style="margin-top:8px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div></div>';}).join('');}
+      '<div class="ofoot" style="margin-top:8px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div></div>';}).join('');
+  if(list.length>limitServ){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasServ()">Ver más ('+(list.length-limitServ)+' restantes)</button>';}
+  box.innerHTML=html;}
 
 function retrocederEstado(id){
   if(role!=='admin'){showToast('⚠️ Solo el admin puede retroceder','error');return;}
@@ -652,6 +734,7 @@ function saveTs(){if(!requireFB())return;var id=document.getElementById('tsId').
     cerrarTsModal();showToast('✅ Fechas actualizadas','success');
   }).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
+function verMasFac(){limitFac+=15;renderFacturas();}
 function renderContab(){var now=new Date(),hoy=localISO(now);var is=new Date(now);var ds=now.getDay()||7;is.setDate(now.getDate()-ds+1);var fS=localISO(is);var fM=now.getFullYear()+'-'+pad2(now.getMonth()+1);
   var T=0,D=0,S=0,M=0;facturas.forEach(function(f){var t=Number(f.total)||0;T+=t;if(f.fecha===hoy)D+=t;if(f.fecha>=fS)S+=t;if(f.fecha>=fM)M+=t;});
   var e1=document.getElementById('contDia'),e2=document.getElementById('contSem'),e3=document.getElementById('contMes'),e4=document.getElementById('contTot');
@@ -659,8 +742,12 @@ function renderContab(){var now=new Date(),hoy=localISO(now);var is=new Date(now
 
 function renderFacturas(){var b=document.getElementById('facturasList');if(!b)return;
   if(!facturas.length){b.innerHTML='<div class="empty">Sin facturas</div>';return;}
-  b.innerHTML=facturas.slice().sort(function(a,b2){return(b2.timestamp||0)-(a.timestamp||0);}).slice(0,15).map(function(f){
-    return'<div class="alertrow" style="border-left-color:var(--purple)"><div><b>'+esc(f.numero||'S/N')+'</b> · '+esc(f.clienteNombre||'')+'<div class="otime">'+esc(f.fecha||'')+' · '+f.kg+' kg'+(f.materialImporte?' · 🧵 +'+fp(f.materialImporte):'')+'</div></div><div><b>'+fp(f.total)+'</b></div></div>';}).join('');}
+  var sorted=facturas.slice().sort(function(a,b2){return(b2.timestamp||0)-(a.timestamp||0);});
+  var shown=sorted.slice(0,limitFac);
+  var html=shown.map(function(f){
+    return'<div class="alertrow" style="border-left-color:var(--purple)"><div><b>'+esc(f.numero||'S/N')+'</b> · '+esc(f.clienteNombre||'')+'<div class="otime">'+esc(f.fecha||'')+' · '+f.kg+' kg'+(f.materialImporte?' · 🧵 +'+fp(f.materialImporte):'')+'</div></div><div><b>'+fp(f.total)+'</b></div></div>';}).join('');
+  if(sorted.length>limitFac){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasFac()">Ver más ('+(sorted.length-limitFac)+' restantes)</button>';}
+  b.innerHTML=html;}
 
 function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes');if(!selC||!selM)return;
   var curC=selC.value,curM=selM.value;
@@ -760,14 +847,19 @@ function saveCliente(){if(!requireFB())return;var id=document.getElementById('cl
   if(id){db.ref('clientes/'+id).update(data).then(function(){cerrarClienteModal();showToast('✅ Cliente actualizado','success');});}
   else{data.createdAtLocal=nowLocal();data.origen='manual';db.ref('clientes/'+newId()).set(data).then(function(){cerrarClienteModal();showToast('✅ Cliente creado','success');});}}
 function delCliente(id){if(!confirm('¿Eliminar cliente?'))return;db.ref('clientes/'+id).remove();}
+function verMasCli(){limitCli+=25;renderClientes();}
 function renderClientes(){var b=document.getElementById('clientesList');if(!b)return;
   if(!clientes.length){b.innerHTML='<div class="empty">Sin clientes. Importa un Excel o crea uno a mano.</div>';return;}
-  b.innerHTML=clientes.slice().sort(function(a,b2){return String(a.nombre||'').localeCompare(String(b2.nombre||''));}).map(function(c){
+  var sorted=clientes.slice().sort(function(a,b2){return String(a.nombre||'').localeCompare(String(b2.nombre||''));});
+  var shown=sorted.slice(0,limitCli);
+  var html=shown.map(function(c){
     var sub=[c.contacto,c.telefono,c.email,c.direccion].filter(Boolean).join(' · ');
     var nprecios=c.preciosPrendas?Object.keys(c.preciosPrendas).length:0;
     var recTxt=(c.recurrencia&&c.recurrencia.activo&&c.recurrencia.dias&&c.recurrencia.dias.length)?(' <span class="otime">· 🔁 '+c.recurrencia.dias.map(function(d){return DIAS[d-1];}).join(',')+'</span>'):'';
     return'<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(c.nombre||'')+'</b>'+(c.nombreComercial&&c.nombreComercial!==c.nombre?' <span class="otime">· '+esc(c.nombreComercial)+'</span>':'')+(c.nif?' <span class="otime">· NIF '+esc(c.nif)+'</span>':'')+(c.precioKilo?' <span class="otime">· '+fp(c.precioKilo)+'/kg</span>':'')+(nprecios?' <span class="otime">· '+nprecios+' precio(s)</span>':'')+recTxt+'<div class="otime">'+esc(sub)+'</div>'+(c.notas?'<div class="otime">📝 '+esc(c.notas)+'</div>':'')+'</div>'+
-    '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="abrirRecogidaModal(\''+c.id+'\')">🧺 Pedido</button><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');}
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="abrirRecogidaModal(\''+c.id+'\')">🧺 Pedido</button><button class="btn btn-grey btn-sm" onclick="openClienteModal(\''+c.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="delCliente(\''+c.id+'\')">🗑️</button></div></div>';}).join('');
+  if(sorted.length>limitCli){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasCli()">Ver más ('+(sorted.length-limitCli)+' restantes)</button>';}
+  b.innerHTML=html;}
 
 function urlQRCliente(id){return location.origin+location.pathname+'?vista=cliente&cliente='+encodeURIComponent(id);}
 function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview');if(!pv)return;
@@ -784,7 +876,6 @@ function mostrarQRClientes(){var pv=document.getElementById('qrClientesPreview')
   });}
 function copiarURL(enc){var url=decodeURIComponent(enc);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(function(){showToast('✅ URL copiada','success');});else showToast(url);}
 
-// ============ MATERIALES EN SOLICITUD ============
 function preciosPrendasPara(cid){var c=clientById(cid);return (c&&c.preciosPrendas)||null;}
 function populateRecPrendaSelect(){var s=document.getElementById('recPrenda');if(!s)return;
   s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
@@ -799,7 +890,6 @@ function renderRecPrendasList(){var b=document.getElementById('recPrendasList');
   if(!recPrendas.length){b.innerHTML='';return;}
   b.innerHTML=recPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="removeRecPrenda('+i+')">✕</button></span></div>';}).join('');}
 
-// ============ SOLICITUD ============
 function abrirRecogidaModal(clientId){
   recogidaClienteId=clientId||null;
   recPrendas=[];
