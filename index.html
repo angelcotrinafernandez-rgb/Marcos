@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L3 -->
+<!-- VERSION: LAV-2026-09-13-L4 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -192,7 +192,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L3</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L4</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -222,7 +222,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
           <div class="stat"><b id="contTot" style="font-size:20px;">0,00 €</b><span>Total</span></div>
         </div>
         <div id="facturasList" style="margin-top:12px;"></div>
-        <button class="btn btn-grey btn-sm" style="margin-top:12px;" onclick="cambiarPasswordAdmin()">🔑 Cambiar contraseña</button>
       </div>
       <div class="card">
         <h3>📄 Factura mensual (PDF)</h3>
@@ -245,14 +244,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <button class="btn btn-gold" onclick="saveEmpresa()">💾 Guardar datos</button>
         <div class="otime" style="margin-top:8px;">El nombre fiscal se muestra en toda la web y en las facturas.</div>
       </div>
-      <div class="card" id="cardCambiarPass">
-        <h3>🔑 Cambiar contraseña</h3>
-        <div id="cambiarPassAdmin">
+      <div class="card">
+        <h3>🔑 Credenciales</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-grey btn-sm" onclick="cambiarPasswordAdmin()">Cambiar contraseña Admin</button>
-        </div>
-        <div id="cambiarPassGer" style="margin-top:8px;">
           <button class="btn btn-grey btn-sm" onclick="cambiarPasswordGer()">Cambiar contraseña Gerencia</button>
+          <button class="btn btn-red btn-sm" onclick="resetCredencialesGer()">Restablecer Gerencia</button>
         </div>
+        <div class="otime" style="margin-top:8px;">"Restablecer Gerencia" vuelve a poner usuario: <b>gerencia</b> y contraseña: <b>gerencia123</b>.</div>
       </div>
       <div class="card">
         <h3>🗑️ Reset de datos de prueba</h3>
@@ -506,7 +505,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L3';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L4';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -572,19 +571,19 @@ function toggleHistorial(){var p=document.getElementById('cartaPanel');if(p)p.cl
 
 function mostrarLoginAdmin(){document.getElementById('loginModal').classList.remove('hidden');document.getElementById('loginUser').focus();}
 function cerrarLogin(){document.getElementById('loginModal').classList.add('hidden');}
-function intentarLogin(){var u=document.getElementById('loginUser').value.trim(),p=document.getElementById('loginPass').value,e=document.getElementById('loginErr');
+function intentarLogin(){var u=document.getElementById('loginUser').value.trim(),p=document.getElementById('loginPass').value.trim(),e=document.getElementById('loginErr');
   if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
   db.ref('config/admin').once('value').then(function(s){var cfg=s.val();
-    if(!cfg){var dh=hashPassword('admin123');db.ref('config/admin').set({usuario:'admin',passwordHash:dh}).then(function(){verLogin(u,p,{usuario:'admin',passwordHash:dh},e);});}
+    if(!cfg){var dh=hashPassword('admin123');db.ref('config/admin').set({usuario:'admin',passwordHash:dh}).then(function(){verLogin(u,p,{usuario:'admin',passwordHash:dh},e);}).catch(function(err){e.textContent='Error al crear configuración: '+err.message;});}
     else verLogin(u,p,cfg,e);});}
 function verLogin(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('admin_auth','1');localStorage.setItem(KEY_ROLE,'admin');cerrarLogin();location.href=location.pathname+'?vista=admin';}else e.textContent='Credenciales incorrectas.';}
 
 function mostrarLoginGer(){document.getElementById('loginModalGer').classList.remove('hidden');document.getElementById('loginUserGer').focus();}
 function cerrarLoginGer(){document.getElementById('loginModalGer').classList.add('hidden');}
-function intentarLoginGer(){var u=document.getElementById('loginUserGer').value.trim(),p=document.getElementById('loginPassGer').value,e=document.getElementById('loginErrGer');
+function intentarLoginGer(){var u=document.getElementById('loginUserGer').value.trim(),p=document.getElementById('loginPassGer').value.trim(),e=document.getElementById('loginErrGer');
   if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
   db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();
-    if(!cfg){var dh=hashPassword('gerencia123');db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){verLoginGer(u,p,{usuario:'gerencia',passwordHash:dh},e);});}
+    if(!cfg){var dh=hashPassword('gerencia123');db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){verLoginGer(u,p,{usuario:'gerencia',passwordHash:dh},e);}).catch(function(err){e.textContent='Error al crear configuración: '+err.message;});}
     else verLoginGer(u,p,cfg,e);});}
 function verLoginGer(u,p,cfg,e){if(u===cfg.usuario&&hashPassword(p)===cfg.passwordHash){sessionStorage.setItem('ger_auth','1');localStorage.setItem(KEY_ROLE,'gerencia');cerrarLoginGer();location.href=location.pathname+'?vista=gerencia';}else e.textContent='Credenciales incorrectas.';}
 
@@ -596,6 +595,10 @@ function cambiarPasswordGer(){if(!requireFB())return;var a=prompt('Contraseña a
   db.ref('config/gerencia').once('value').then(function(s){var cfg=s.val();if(!cfg||hashPassword(a)!==cfg.passwordHash){showToast('❌ Incorrecta','error');return;}
     var n=prompt('Nueva contraseña (mín 4):');if(!n||n.length<4){showToast('❌ Muy corta','error');return;}
     db.ref('config/gerencia').update({passwordHash:hashPassword(n)}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
+function resetCredencialesGer(){if(!requireFB())return;
+  if(!confirm('⚠️ Esto restablecerá las credenciales de Gerencia a los valores por defecto (gerencia/gerencia123). ¿Continuar?'))return;
+  var dh=hashPassword('gerencia123');
+  db.ref('config/gerencia').set({usuario:'gerencia',passwordHash:dh}).then(function(){showToast('✅ Credenciales de Gerencia restablecidas','success');}).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;
   a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';
