@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L8 -->
+<!-- VERSION: LAV-2026-09-13-L9 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -175,12 +175,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L8</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L9</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
 
     <div class="tabpane hidden" id="pane-clientes">
+      <div class="card">
+        <h3>📦 Pedidos por cliente y periodo</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <select class="input" id="pcCliente" style="flex:1;margin:0;" onchange="renderPeriodosCliente()"></select>
+          <select class="input" id="pcPeriodo" style="flex:1;margin:0;"></select>
+          <button class="btn btn-gold" onclick="verPedidosCliente()">🔍 Ver</button>
+          <button class="btn btn-grey" onclick="exportarPedidosCliente()">📥 Excel</button>
+        </div>
+        <div class="otime" style="margin-bottom:8px;">Elige un cliente y un periodo (mes). "Ver" muestra los pedidos en pantalla; "Excel" los exporta con todas las columnas.</div>
+        <div id="pedidosClienteResultados"></div>
+      </div>
       <div class="card">
         <h3>🏨 Clientes</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
@@ -501,7 +512,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L8';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L9';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -761,7 +772,7 @@ function applyRole(){
 
 function renderAll(){
   if(isStaff()){detectChanges();renderStaffServicios();renderServiciosStats();}
-  if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();renderInformeClientes();}
+  if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();renderInformeClientes();renderPedidosClienteSelect();}
   if(role==='gerencia'){renderResumen();renderQuickClientes();renderClientes();renderEmpresa();}
   if(role==='lavanderia'){renderActividad();}
   if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();}
@@ -968,6 +979,59 @@ function exportarExcel(){
   var data=buildServiciosRows(list);
   var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Servicios');
   XLSX.writeFile(wb,'servicios_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('✅ Excel exportado','success');}
+
+function renderPedidosClienteSelect(){
+  var s=document.getElementById('pcCliente');if(!s)return;
+  var cur=s.value;
+  s.innerHTML='<option value="todos">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+  if(cur)s.value=cur;
+  if(!s.value)s.value='todos';
+  renderPeriodosCliente();}
+function renderPeriodosCliente(){
+  var sel=document.getElementById('pcPeriodo');if(!sel)return;
+  var cid=document.getElementById('pcCliente').value;
+  var cur=sel.value;
+  var set={};
+  servicios.forEach(function(s){
+    if(cid!=='todos'&&s.clienteId!==cid)return;
+    if(s.createdAtLocal){set[ymOf(s.createdAtLocal)]=1;}
+  });
+  var months=Object.keys(set).sort().reverse();
+  sel.innerHTML='<option value="todos">Todos los periodos</option>'+months.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');
+  if(cur&&months.indexOf(cur)!==-1)sel.value=cur;
+  else sel.value='todos';}
+function filtrarPedidosCliente(){
+  var cid=document.getElementById('pcCliente').value;
+  var per=document.getElementById('pcPeriodo').value;
+  var list=servicios.slice();
+  if(cid!=='todos'){list=list.filter(function(s){return s.clienteId===cid;});}
+  if(per!=='todos'){list=list.filter(function(s){return s.createdAtLocal&&ymOf(s.createdAtLocal)===per;});}
+  list.sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});
+  return list;}
+function verPedidosCliente(){
+  var box=document.getElementById('pedidosClienteResultados');if(!box)return;
+  var list=filtrarPedidosCliente();
+  if(!list.length){box.innerHTML='<div class="empty">No hay pedidos en ese filtro.</div>';return;}
+  box.innerHTML='<div class="otime" style="margin-bottom:8px;">'+list.length+' pedido(s)</div>'+
+    list.map(function(s){
+      var c=clientById(s.clienteId)||{};
+      var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';
+      var info=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');
+      return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;">'+
+        '<div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div>'+
+        '<div class="oitems">'+escL(s.nota||'')+'</div>'+
+        (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+
+        '<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span></div>'+
+      '</div>';
+    }).join('');}
+function exportarPedidosCliente(){
+  if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}
+  var list=filtrarPedidosCliente();
+  if(!list.length){showToast('⚠️ No hay pedidos en ese filtro','error');return;}
+  var data=buildServiciosRows(list);
+  var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Pedidos');
+  XLSX.writeFile(wb,'pedidos_cliente_'+new Date().toISOString().slice(0,10)+'.xlsx');
   showToast('✅ Excel exportado','success');}
 
 function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
