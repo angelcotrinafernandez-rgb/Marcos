@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L10 -->
+<!-- VERSION: LAV-2026-09-13-L11 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -97,6 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .hora-row{display:flex;gap:8px;align-items:center;}
 .hora-row .input{margin:0;}
 .dif-badge{padding:4px 10px;border-radius:6px;background:var(--bg2);font-size:12px;color:var(--t2);}
+.fld-label{font-size:13px;color:var(--t2);margin-bottom:4px;}
 .debug-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;}
 .debug-line{padding:2px 0;color:var(--t2);} .debug-line.error{color:var(--red);} .debug-line.success{color:var(--green);}
 @media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}.tabbar{top:56px;}}
@@ -175,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L10</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L11</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -219,14 +220,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       </div>
       <div class="card">
         <h3>📄 Factura mensual (PDF)</h3>
+        <div class="fld-label">Agrupación:</div>
+        <select class="input" id="fmModo" onchange="renderAdminFM()">
+          <option value="cliente">Factura por cliente (individual)</option>
+          <option value="nif">Factura agrupada por NIF/CIF</option>
+        </select>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-          <select class="input" id="fmModo" onchange="renderAdminFM()">
-            <option value="cliente">Factura por cliente (individual)</option>
-            <option value="nif">Factura agrupada por NIF/CIF</option>
-          </select>
-          <select class="input" id="fmMes"></select>
+          <div>
+            <div class="fld-label" id="fmClienteLabel">Cliente:</div>
+            <select class="input" id="fmCliente" style="margin-bottom:0;"></select>
+          </div>
+          <div>
+            <div class="fld-label">Mes:</div>
+            <select class="input" id="fmMes" style="margin-bottom:0;"></select>
+          </div>
         </div>
-        <select class="input" id="fmCliente" style="margin-bottom:10px;"></select>
+        <div class="otime" id="fmIndicador" style="margin-bottom:10px;"></div>
         <button class="btn btn-gold" onclick="adminGenerarFM()">📄 Generar y descargar PDF</button>
         <div class="otime" style="margin-top:8px;">Elige si facturar por cliente individual o agrupar todos los clientes con el mismo NIF/CIF.</div>
       </div>
@@ -516,7 +525,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L10';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L11';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -896,17 +905,23 @@ function renderAdminFM(){
   var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes'),selModo=document.getElementById('fmModo');
   if(!selC||!selM)return;
   var modo=selModo?selModo.value:'cliente';
+  var lbl=document.getElementById('fmClienteLabel');
+  var ind=document.getElementById('fmIndicador');
   var curC=selC.value,curM=selM.value;
   if(modo==='nif'){
+    if(lbl)lbl.textContent='NIF/CIF:';
     var nifs={};
     clientes.forEach(function(c){if(c.nif){nifs[c.nif]=1;}});
     var nifList=Object.keys(nifs).sort();
     selC.innerHTML=nifList.map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
     if(!nifList.length)selC.innerHTML='<option value="">— Sin NIF registrados —</option>';
     if(curC&&nifs[curC])selC.value=curC;
+    if(ind)ind.textContent='Modo: agrupando por NIF/CIF — se juntarán todos los clientes con el NIF elegido.';
   }else{
+    if(lbl)lbl.textContent='Cliente:';
     selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
     if(curC&&clientes.some(function(c){return c.id===curC;}))selC.value=curC;
+    if(ind)ind.textContent='Modo: factura individual por cliente.';
   }
   var set={};set[ymOf(Date.now())]=1;
   servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)set[ymOf(s.tsPesado||s.createdAtLocal)]=1;});
