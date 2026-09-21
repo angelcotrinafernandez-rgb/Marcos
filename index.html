@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L9 -->
+<!-- VERSION: LAV-2026-09-13-L10 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -175,7 +175,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L9</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L10</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -220,11 +220,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
       <div class="card">
         <h3>📄 Factura mensual (PDF)</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-          <select class="input" id="fmCliente"></select>
+          <select class="input" id="fmModo" onchange="renderAdminFM()">
+            <option value="cliente">Factura por cliente (individual)</option>
+            <option value="nif">Factura agrupada por NIF/CIF</option>
+          </select>
           <select class="input" id="fmMes"></select>
         </div>
+        <select class="input" id="fmCliente" style="margin-bottom:10px;"></select>
         <button class="btn btn-gold" onclick="adminGenerarFM()">📄 Generar y descargar PDF</button>
-        <div class="otime" style="margin-top:8px;">Agrupa los servicios por la fecha de pesaje.</div>
+        <div class="otime" style="margin-top:8px;">Elige si facturar por cliente individual o agrupar todos los clientes con el mismo NIF/CIF.</div>
       </div>
       <div class="card">
         <h3>📋 Informe de servicios</h3>
@@ -512,7 +516,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L9';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L10';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -888,17 +892,104 @@ function renderFacturas(){var b=document.getElementById('facturasList');if(!b)re
   if(sorted.length>limitFac){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasFac()">Ver más ('+(sorted.length-limitFac)+' restantes)</button>';}
   b.innerHTML=html;}
 
-function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes');if(!selC||!selM)return;
+function renderAdminFM(){
+  var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes'),selModo=document.getElementById('fmModo');
+  if(!selC||!selM)return;
+  var modo=selModo?selModo.value:'cliente';
   var curC=selC.value,curM=selM.value;
-  selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+  if(modo==='nif'){
+    var nifs={};
+    clientes.forEach(function(c){if(c.nif){nifs[c.nif]=1;}});
+    var nifList=Object.keys(nifs).sort();
+    selC.innerHTML=nifList.map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
+    if(!nifList.length)selC.innerHTML='<option value="">— Sin NIF registrados —</option>';
+    if(curC&&nifs[curC])selC.value=curC;
+  }else{
+    selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+    if(curC&&clientes.some(function(c){return c.id===curC;}))selC.value=curC;
+  }
   var set={};set[ymOf(Date.now())]=1;
   servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)set[ymOf(s.tsPesado||s.createdAtLocal)]=1;});
   var months=Object.keys(set).sort().reverse();
   selM.innerHTML=months.map(function(m){return'<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');
-  if(curC&&clientes.some(function(c){return c.id===curC;}))selC.value=curC;
   if(curM&&months.indexOf(curM)!==-1)selM.value=curM;}
-function adminGenerarFM(){var c=document.getElementById('fmCliente').value,m=document.getElementById('fmMes').value;
-  if(!c||!m){showToast('⚠️ Elige cliente y mes','error');return;}generarPDFMensual(c,m);}
+function adminGenerarFM(){
+  var selModo=document.getElementById('fmModo');
+  var modo=selModo?selModo.value:'cliente';
+  var val=document.getElementById('fmCliente').value;
+  var m=document.getElementById('fmMes').value;
+  if(!val||!m){showToast('⚠️ Elige cliente/NIF y mes','error');return;}
+  if(modo==='nif'){generarPDFPorNIF(val,m);}
+  else{generarPDFMensual(val,m);}
+}
+function generarPDFPorNIF(nif,ym){
+  if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}
+  var clientsWithNif=clientes.filter(function(c){return c.nif===nif;});
+  if(!clientsWithNif.length){showToast('⚠️ No hay clientes con ese NIF','error');return;}
+  var clientIds={};clientsWithNif.forEach(function(c){clientIds[c.id]=c;});
+  var lines=servicios.filter(function(s){return clientIds[s.clienteId]&&ymOf(s.tsPesado||s.createdAtLocal)===ym&&['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&(Number(s.total)||0)>0;})
+    .sort(function(a,b){return(a.createdAtLocal||0)-(b.createdAtLocal||0);});
+  if(!lines.length){showToast('⚠️ No hay lavados facturables en ese mes','error');return;}
+  ensureFacturaMensualNIF(nif,ym,function(rec){buildPDFNIF(nif,ym,lines,clientIds,rec);});
+}
+function ensureFacturaMensualNIF(nif,ym,cb){
+  var safeNif=String(nif).replace(/[^a-zA-Z0-9]/g,'_');
+  var key='NIF_'+safeNif+'_'+ym;
+  db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();
+    if(rec&&rec.numero){cb(rec);return;}
+    db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){
+      if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}
+      var n=snap.val();var numero='FM-'+ym.replace('-','')+'-'+String(n).padStart(4,'0');
+      var newRec={numero:numero,nif:nif,ym:ym,createdAt:Date.now()};
+      db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec);});
+    });
+  });}
+function buildPDFNIF(nif,ym,lines,clientIds,rec){
+  var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
+  doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);
+  doc.setFontSize(9);
+  doc.text('NIF: '+(empresa.nif||''),14,24);
+  doc.text(empresa.direccion||'',14,29);
+  doc.setFontSize(11);doc.text('Factura mensual agrupada (por NIF/CIF)',14,38);
+  doc.setFontSize(10);
+  doc.text('Nº factura: '+rec.numero,14,46);
+  doc.text('Periodo: '+monthLabel(ym),14,52);
+  doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);
+  doc.text('NIF/CIF cliente: '+nif,14,66);
+  var nombresComerciales={};
+  lines.forEach(function(s){var c=clientIds[s.clienteId];if(c){nombresComerciales[c.nombreComercial||c.nombre]=1;}});
+  var ncList=Object.keys(nombresComerciales).join(', ');
+  doc.text('Negocios: '+ncList,14,72);
+  var cy=78;
+  var body=lines.map(function(s){
+    var c=clientIds[s.clienteId];
+    var nombreCli=c?(c.nombreComercial||c.nombre):'';
+    var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
+    return[nombreCli,new Date(s.tsPesado||s.createdAtLocal).toLocaleDateString('es-ES'),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2)];
+  });
+  var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
+  var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
+  doc.autoTable({startY:cy+6,
+    head:[['Cliente','Fecha','Kg','€/Kg','Base €','Material €','Subtotal €']],
+    body:body,
+    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2)]],
+    styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]}
+  });
+  var y=doc.lastAutoTable.finalY+8;
+  var agg={};lines.forEach(function(s){(s.prendas||[]).forEach(function(p){if(!agg[p.tipo])agg[p.tipo]={qty:0,precio:p.precio,total:0};agg[p.tipo].qty+=p.qty;agg[p.tipo].total+=p.total;agg[p.tipo].precio=p.precio;});});
+  var aggKeys=Object.keys(agg);
+  if(aggKeys.length){doc.setFontSize(9);doc.text('Material opcional (prendas):',14,y);y+=5;
+    aggKeys.forEach(function(k){doc.text('   '+k+' ×'+agg[k].qty+' @ '+agg[k].precio.toFixed(2)+' = '+agg[k].total.toFixed(2)+' €',14,y);y+=5;});
+    y+=2;}
+  doc.setFontSize(10);
+  doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,y);y+=6;
+  doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;
+  doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=8;
+  doc.setFontSize(8);
+  doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;
+  doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
+  doc.save('Factura_AGRUPADA_'+rec.numero+'.pdf');
+  showToast('✅ PDF agrupado descargado: '+rec.numero,'success');}
 
 function renderInformeClientes(){var s=document.getElementById('infCliente');if(!s)return;
   var cur=s.value;
