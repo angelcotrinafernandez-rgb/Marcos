@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L12 -->
+<!-- VERSION: LAV-2026-09-13-L13 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -176,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L12</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L13</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -201,6 +201,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
           <button class="btn btn-grey" onclick="openClienteModal(null)">➕ Nuevo</button>
           <button class="btn btn-grey" onclick="mostrarQRClientes()">📱 QR clientes</button>
         </div>
+        <input class="input" id="clienteFiltro" placeholder="🔍 Filtrar clientes: escribe las primeras letras del nombre…" oninput="filtrarClientesTexto(this.value)"/>
         <div class="otime" style="margin-bottom:10px;">Botón "🧺 Pedido": crea una solicitud en nombre del cliente (entra como SOLICITADO).</div>
         <div id="clientesList"></div>
         <div id="qrClientesPreview" class="hidden"></div>
@@ -502,6 +503,7 @@ var recogidaClienteId=null;
 var recPrendas=[];
 var currentTab='inicio';
 var limitServ=20,limitFac=15,limitCli=25;
+var clienteFiltroTexto='';
 
 function esGerencia(){return role==='gerencia';}
 function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
@@ -525,7 +527,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L12';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L13';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -1233,9 +1235,13 @@ function saveCliente(){if(!requireFB())return;var id=document.getElementById('cl
   else{data.createdAtLocal=nowLocal();data.origen='manual';db.ref('clientes/'+newId()).set(data).then(function(){cerrarClienteModal();showToast('✅ Cliente creado','success');});}}
 function delCliente(id){if(!confirm('¿Eliminar cliente?'))return;db.ref('clientes/'+id).remove();}
 function verMasCli(){limitCli+=25;renderClientes();}
+function filtrarClientesTexto(v){clienteFiltroTexto=(v||'').trim();limitCli=25;renderClientes();}
 function renderClientes(){var b=document.getElementById('clientesList');if(!b)return;
   if(!clientes.length){b.innerHTML='<div class="empty">Sin clientes. Importa un Excel o crea uno a mano.</div>';return;}
   var sorted=clientes.slice().sort(function(a,b2){return String(a.nombre||'').localeCompare(String(b2.nombre||''));});
+  var q=norm(clienteFiltroTexto);
+  if(q){sorted=sorted.filter(function(c){var hay=norm(c.nombre||'')+' '+norm(c.nombreComercial||'');return hay.indexOf(q)!==-1;});}
+  if(!sorted.length){b.innerHTML='<div class="empty">Ningún cliente coincide con "'+esc(clienteFiltroTexto)+'".</div>';return;}
   var shown=sorted.slice(0,limitCli);
   var html=shown.map(function(c){
     var sub=[c.contacto,c.telefono,c.email,c.direccion].filter(Boolean).join(' · ');
