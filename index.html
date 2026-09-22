@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L13 -->
+<!-- VERSION: LAV-2026-09-13-L14 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -150,7 +150,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div class="card"><h3>📌 Resumen</h3><div class="stats" id="resumenStats"></div></div>
         <div class="card">
           <h3>🧺 Pedido rápido</h3>
-          <div class="otime" style="margin-bottom:8px;">Elige un cliente y crea la solicitud sin recorrer la lista.</div>
+          <div class="otime" style="margin-bottom:8px;">Escribe las primeras letras del cliente, elige y crea la solicitud sin recorrer la lista.</div>
+          <input class="input" id="quickFiltro" placeholder="🔍 Escribe las primeras letras del cliente…" oninput="filtrarQuickCliente(this.value)"/>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <select class="input" id="quickCliente" style="flex:2;margin:0;"></select>
             <button class="btn btn-gold" onclick="quickPedido()">🧺 Hacer pedido</button>
@@ -176,7 +177,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L13</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L14</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -504,6 +505,7 @@ var recPrendas=[];
 var currentTab='inicio';
 var limitServ=20,limitFac=15,limitCli=25;
 var clienteFiltroTexto='';
+var quickFiltroTexto='';
 
 function esGerencia(){return role==='gerencia';}
 function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
@@ -527,7 +529,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L13';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L14';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -748,9 +750,19 @@ function renderServiciosStats(){var box=document.getElementById('serviciosStats'
     '<div class="stat"><b>'+ent+'</b><span>Entregados</span></div>';}
 
 function renderQuickClientes(){var s=document.getElementById('quickCliente');if(!s)return;
+  var q=norm(quickFiltroTexto);
+  var list=clientes.slice();
+  if(q){list=list.filter(function(c){var hay=norm(c.nombre||'')+' '+norm(c.nombreComercial||'');return hay.indexOf(q)!==-1;});}
   var cur=s.value;
-  s.innerHTML='<option value="">— Elegir cliente —</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
-  if(cur&&clientes.some(function(c){return c.id===cur;}))s.value=cur;}
+  if(q){
+    if(!list.length){s.innerHTML='<option value="">— Sin coincidencias —</option>';return;}
+    s.innerHTML=list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+    if(cur&&list.some(function(c){return c.id===cur;}))s.value=cur;else s.value=list[0].id;
+  }else{
+    s.innerHTML='<option value="">— Elegir cliente —</option>'+list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+    if(cur&&list.some(function(c){return c.id===cur;}))s.value=cur;
+  }}
+function filtrarQuickCliente(v){quickFiltroTexto=(v||'').trim();renderQuickClientes();}
 
 function resetDatos(){if(!requireFB())return;
   if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales y contadores.\nLos clientes, la empresa y los usuarios se CONSERVAN.\n¿Continuar?'))return;
