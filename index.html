@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L11 -->
+<!-- VERSION: LAV-2026-09-13-L12 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -176,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L11</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L12</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -190,7 +190,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
           <button class="btn btn-gold" onclick="verPedidosCliente()">🔍 Ver</button>
           <button class="btn btn-grey" onclick="exportarPedidosCliente()">📥 Excel</button>
         </div>
-        <div class="otime" style="margin-bottom:8px;">Elige un cliente y un periodo (mes). "Ver" muestra los pedidos en pantalla; "Excel" los exporta con todas las columnas.</div>
+        <div class="otime" style="margin-bottom:8px;">Elige un cliente y un periodo (mes). "Ver" muestra los pedidos con botones para actuar sobre ellos; "Excel" los exporta.</div>
         <div id="pedidosClienteResultados"></div>
       </div>
       <div class="card">
@@ -525,7 +525,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L11';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L12';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -1123,12 +1123,24 @@ function verPedidosCliente(){
     list.map(function(s){
       var c=clientById(s.clienteId)||{};
       var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';
-      var info=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');
+      var info=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.importeMaterial?' · 🧵 +'+fp(s.importeMaterial):'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');
+      var prendasTxt=(s.prendas&&s.prendas.length)?('<div class="otime" style="margin-top:4px;">🧵 '+esc(s.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
+      var weighed=['PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1;
+      var extra='';
+      if(['RECOGIDO','PESADO','ENTREGADO','FACTURADO'].indexOf(s.estado)!==-1){
+        extra='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'
+          +(esAdminOGerencia()?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')
+          +(weighed?'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>':'')
+          +(esAdminOGerencia()&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')
+          +(esAdminOGerencia()&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')
+          +'</div>';
+      }
       return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;">'+
         '<div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div>'+
         '<div class="oitems">'+escL(s.nota||'')+'</div>'+
-        (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+
-        '<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span></div>'+
+        lineaRecogida(s)+diferenciaLine(s)+
+        (info?'<div class="otime" style="margin-top:4px;">'+info+'</div>':'')+prendasTxt+extra+
+        '<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div>'+
       '</div>';
     }).join('');}
 function exportarPedidosCliente(){
@@ -1403,7 +1415,8 @@ function abrirPesarModal(id,edit){pesarServicioId=id;pesarEditMode=!!edit;
   if(s&&s.prendas&&s.prendas.length){
     pesarPrendas=s.prendas.map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});
   }else{pesarPrendas=[];}
-  document.getElementById('pesarKg').value=(s&&s.kg)?s.kg:'';
+  var prefillKg=(s&&s.kg)?s.kg:((s&&s.pesoCliente!=null)?s.pesoCliente:'');
+  document.getElementById('pesarKg').value=prefillKg;
   document.getElementById('pesarNota').value=(s&&s.notaMaterial)||'';
   document.getElementById('pesarPrendaQty').value='1';
   populatePrendaSelect();renderPrendasList();
@@ -1450,8 +1463,10 @@ function confirmarPesaje(){if(!requireFB()||!pesarServicioId)return;
       .then(function(){cerrarPesarModal();showToast('✅ '+num+': '+fp(total),'success');});});}
 
 function cambiarEstado(id,est){if(!puedeCambiar(est)){showToast('⚠️ Tu rol no puede hacer eso','error');return;}if(!requireFB())return;
+  var s=servicioPorId(id);
   var upd={estado:est,updatedAtLocal:nowLocal()};
   if(est==='ENTREGADO')upd.tsEntregado=nowLocal();
+  if(est==='RECOGIDO'&&s&&s.pesoCliente!=null&&(s.kg==null||s.kg===0)){upd.kg=s.pesoCliente;}
   db.ref('servicios/'+id).update(upd).then(function(){showToast('✅ '+stLabel(est),'success');});}
 
 function forceRefresh(){if(!requireFB())return;db.ref('servicios').once('value').then(function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});renderAll();showToast('✅ Actualizado','success');});}
