@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-13-L15 -->
+<!-- VERSION: LAV-2026-09-13-L16 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -178,7 +178,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L15</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-13 L16</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -462,6 +462,7 @@ function fmtFecha(ymd){if(!ymd)return'';var p=String(ymd).split('-');return p[2]
 function plusOneHour(hhmm){if(!hhmm)return'';var p=String(hhmm).split(':');var h=parseInt(p[0],10)+1;if(h>23)h=23;return pad2(h)+':'+(p[1]||'00');}
 function fdt(ms){if(!ms)return'';var d=new Date(ms);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}
 function toLocalInput(ms){if(!ms)return'';var d=new Date(ms);return localISO(d)+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
+function notaPlana(s){return (s&&s.nota)?String(s.nota).replace(/\s*\n\s*/g,' · '):'';}
 
 function applyBrand(){var n=empresa.nombre||'LavaExpressCanarias, S.L.U.';
   document.title=n;
@@ -533,7 +534,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L15';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L16';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -998,14 +999,14 @@ function buildPDFNIF(nif,ym,lines,clientIds,rec){
     var c=clientIds[s.clienteId];
     var nombreCli=c?(c.nombreComercial||c.nombre):'';
     var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
-    return[nombreCli,new Date(s.tsPesado||s.createdAtLocal).toLocaleDateString('es-ES'),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2)];
+    return[nombreCli,new Date(s.tsPesado||s.createdAtLocal).toLocaleDateString('es-ES'),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2),notaPlana(s)];
   });
   var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
   var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
   doc.autoTable({startY:cy+6,
-    head:[['Cliente','Fecha','Kg','€/Kg','Base €','Material €','Subtotal €']],
+    head:[['Cliente','Fecha','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
     body:body,
-    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2)]],
+    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2),'']],
     styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]}
   });
   var y=doc.lastAutoTable.finalY+8;
@@ -1416,13 +1417,13 @@ function buildPDF(c,ym,lines,rec){
   if(c.direccion){doc.text('Dirección: '+c.direccion,14,cy);cy+=6;}
   if(c.contacto){doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,cy);cy+=6;}
   var body=lines.map(function(s){var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
-    return[new Date(s.tsPesado||s.createdAtLocal).toLocaleDateString('es-ES'),(s.facturaId||''),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2)];});
+    return[new Date(s.tsPesado||s.createdAtLocal).toLocaleDateString('es-ES'),(s.facturaId||''),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2),notaPlana(s)];});
   var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
   var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
   doc.autoTable({startY:cy+6,
-    head:[['Fecha','Nº serv.','Kg','€/Kg','Base €','Material €','Subtotal €']],
+    head:[['Fecha','Nº serv.','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
     body:body,
-    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2)]],
+    foot:[['TOTALES','',sumKg.toFixed(1),'','','',sumBase.toFixed(2),'']],
     styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]}
   });
   var y=doc.lastAutoTable.finalY+8;
@@ -1447,7 +1448,7 @@ function abrirPesarModal(id,edit){pesarServicioId=id;pesarEditMode=!!edit;
   document.getElementById('pesarTitle').textContent=pesarEditMode?'✏️ Editar servicio pesado':'⚖️ Pesar servicio';
   var notaBox=document.getElementById('pesarNotaPedido');
   if(notaBox){
-    if(s&&s.nota){notaBox.style.display='block';notaBox.textContent=' Nota del pedido: '+s.nota;}
+    if(s&&s.nota){notaBox.style.display='block';notaBox.textContent='📝 Nota del pedido: '+s.nota;}
     else{notaBox.style.display='none';notaBox.textContent='';}
   }
   if(s&&s.prendas&&s.prendas.length){
