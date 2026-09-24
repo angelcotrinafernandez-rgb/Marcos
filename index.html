@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-24-L20 -->
+<!-- VERSION: LAV-2026-09-24-L21 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -100,7 +100,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .fld-label{font-size:13px;color:var(--t2);margin-bottom:4px;}
 .nota-pedido{background:var(--bg2);border:1px dashed var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:var(--t2);white-space:pre-line;}
 .filtro-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
-.filtro-row .input{margin:0;flex:1;min-width:130px;}
+.filtro-row .input{margin:0;flex:1;min-width:120px;}
 .clilist{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:8px;}
 .clilist label{display:flex;gap:8px;align-items:center;padding:4px 2px;font-size:13px;color:var(--t2);}
 .clilist input{width:auto;margin:0;}
@@ -213,8 +213,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-24 L20</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-24 L21</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
+      </div>
+    </div>
+
+    <div class="tabpane hidden" id="pane-albaranes">
+      <div class="card">
+        <h3>📄 Albaranes</h3>
+        <div class="filtro-row">
+          <select class="input" id="albCliente" style="margin:0;flex:1;" onchange="renderAlbaranesAdmin()"></select>
+          <select class="input" id="albPeriodo" style="margin:0;flex:1;" onchange="renderAlbaranesAdmin()"></select>
+          <select class="input" id="albTipo" style="margin:0;flex:1;" onchange="renderAlbaranesAdmin()">
+            <option value="todos">Todos</option>
+            <option value="recogida">Recogida</option>
+            <option value="entrega">Entrega</option>
+          </select>
+        </div>
+        <div id="albaranesList"></div>
       </div>
     </div>
 
@@ -463,6 +479,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
   </div>
 </div>
 
+<div id="albaranEditModal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h3 style="margin-bottom:12px;">✏️ Editar albarán</h3>
+    <input type="hidden" id="albEditId"/>
+    <div class="fld-label">Kg</div>
+    <input class="input" type="number" step="0.01" id="albEditKg"/>
+    <div class="fld-label">Total (€)</div>
+    <input class="input" type="number" step="0.01" id="albEditTotal"/>
+    <div class="fld-label">Nota del cliente</div>
+    <textarea class="textarea" id="albEditNota"></textarea>
+    <div class="fld-label">Nota interna</div>
+    <textarea class="textarea" id="albEditNotaMat"></textarea>
+    <div class="fld-label">Materiales</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <select class="input" id="albEditPrenda" style="flex:2;margin:0;"></select>
+      <input class="input" id="albEditPrendaQty" type="number" min="1" value="1" style="flex:1;margin:0;"/>
+      <button class="btn btn-grey" onclick="albEditAddPrenda()">➕</button>
+    </div>
+    <div id="albEditPrendasList" style="margin-top:8px;"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-grey btn-sm" onclick="albEditQuitarFirma()">✕ Quitar firma</button>
+      <span class="otime" id="albEditFirmaEstado"></span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn btn-grey" onclick="cerrarAlbaranEdit()">Cancelar</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="guardarAlbaranEdit()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <div id="qrModal" class="modal-overlay hidden">
   <div class="modal-content" style="text-align:center;">
     <h3 id="qrModalTitle" style="margin-bottom:8px;">📱 QR del cliente</h3>
@@ -584,6 +630,8 @@ var servClientesSel=[];
 var servCliFiltroTexto='';
 var albCtx=null;
 var qrModalUrl='';
+var albEditPrendas=[];
+var albEditQuitarFirmaFlag=false;
 
 function esGerencia(){return role==='gerencia';}
 function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
@@ -609,7 +657,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L20';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L21';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -625,10 +673,10 @@ function diferenciaLine(s){if(s.pesoCliente==null)return'';
 function buildTabBar(){
   var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';
   var tabs;
-  if(role==='admin'){tabs=['inicio','servicios','clientes','contabilidad','ajustes'];}
+  if(role==='admin'){tabs=['inicio','servicios','albaranes','clientes','contabilidad','ajustes'];}
   else if(role==='gerencia'){tabs=['inicio','servicios','clientes','ajustes'];}
   else{tabs=['inicio','servicios'];}
-  var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};
+  var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',albaranes:'📄 Albaranes',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};
   tabs.forEach(function(t){
     var b=document.createElement('button');
     b.className='tabbtn'+(t===currentTab?' active':'');
@@ -639,7 +687,7 @@ function buildTabBar(){
 }
 function showTab(t){
   currentTab=t;
-  ['inicio','servicios','clientes','contabilidad','ajustes'].forEach(function(p){
+  ['inicio','servicios','albaranes','clientes','contabilidad','ajustes'].forEach(function(p){
     var el=document.getElementById('pane-'+p);
     if(el)el.classList.toggle('hidden',p!==t);
   });
@@ -885,7 +933,7 @@ function applyRole(){
 
 function renderAll(){
   if(isStaff()){detectChanges();renderStaffServicios();renderServiciosStats();}
-  if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();renderInformeClientes();renderPedidosClienteSelect();}
+  if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();renderInformeClientes();renderPedidosClienteSelect();renderAlbaranesAdmin();}
   if(role==='gerencia'){renderResumen();renderQuickClientes();renderClientes();renderEmpresa();}
   if(role==='lavanderia'){renderActividad();}
   if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();renderClientAlbaranes();}
@@ -974,7 +1022,10 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
     var infoS=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.importeMaterial?' · 🧵 +'+fp(s.importeMaterial):'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');
     var prendasTxt=(s.prendas&&s.prendas.length)?('<div class="otime" style="margin-top:4px;">🧵 '+esc(s.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
     var albs=albaranesDeServicio(s.id);
-    var albBtns=albs.length?('<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">'+albs.map(function(a){return '<button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">'+(a.tipo==='recogida'?'📄 Alb. Recogida':'📄 Alb. Entrega')+'</button>';}).join('')+'</div>'):'';
+    var albBtns=albs.length?('<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">'+albs.map(function(a){
+        return '<button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">'+(a.tipo==='recogida'?'📄 Alb. Recogida':'📄 Alb. Entrega')+'</button>'
+          +(role==='admin'?'<button class="btn btn-grey btn-sm" onclick="abrirAlbaranEdit(\''+a.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="borrarAlbaran(\''+a.id+'\')">🗑️</button>':'');
+      }).join('')+'</div>'):'';
     var tsParts=[];
     if(s.tsSolicitado)tsParts.push('Sol. '+fdt(s.tsSolicitado));
     if(s.tsPesado)tsParts.push('Pes. '+fdt(s.tsPesado));
@@ -1049,7 +1100,7 @@ function saveTs(){if(!requireFB())return;var id=document.getElementById('tsId').
     cerrarTsModal();showToast('✅ Fechas actualizadas','success');
   }).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
-// ===== ALBARANES CON FIRMA =====
+// ===== ALBARANES =====
 function preguntarAlbaran(sid,tipo){
   if(confirm('¿Generar albarán de '+tipo+' con firma del cliente?')){abrirAlbaranModal(sid,tipo);}
 }
@@ -1093,12 +1144,15 @@ function guardarAlbaran(){
   var cl=clientById(s.clienteId)||{};
   var kg=albCtx.tipo==='recogida'?((s.pesoCliente!=null)?s.pesoCliente:(s.kg||0)):(s.kg||0);
   var now=nowLocal();
+  var prendas=(s.prendas||[]).map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});
   var rec={
     tipo:albCtx.tipo,servicioId:s.id,clienteId:s.clienteId,
     clienteNombre:cl.nombre||s.clienteNombre||'',clienteNombreComercial:cl.nombreComercial||'',
     clienteNif:cl.nif||'',clienteContacto:cl.contacto||'',clienteTelefono:cl.telefono||'',clienteDireccion:cl.direccion||'',
     kg:kg,total:(albCtx.tipo==='entrega'?(Number(s.total)||0):0),
-    nota:s.nota||'',fecha:now,firma:firma,emitidoPor:role
+    nota:s.nota||'',notaMaterial:s.notaMaterial||'',
+    prendas:prendas,importeMaterial:Number(s.importeMaterial)||0,
+    fecha:now,firma:firma,emitidoPor:role
   };
   db.ref('albaranes').push(rec).then(function(){cerrarAlbaranModal();showToast('✅ Albarán guardado','success');})
     .catch(function(e){showToast('❌ Error: '+e.message,'error');});
@@ -1123,7 +1177,13 @@ function descargarAlbaranPDF(id){
   if(a.clienteDireccion){doc.text('Dirección: '+a.clienteDireccion,14,y);y+=6;}
   doc.text('Kilos: '+(a.kg||0)+' kg',14,y);y+=6;
   if(a.tipo==='entrega'&&a.total){doc.text('Total (IGIC incl.): '+Number(a.total).toFixed(2)+' €',14,y);y+=6;}
-  if(a.nota){doc.text('Nota: '+String(a.nota).slice(0,140),14,y);y+=6;}
+  if(a.prendas&&a.prendas.length){
+    doc.text('Materiales:',14,y);y+=5;
+    a.prendas.forEach(function(p){doc.text('   '+p.qty+' x '+p.tipo+'  = '+Number(p.total).toFixed(2)+' €',14,y);y+=5;});
+    y+=1;
+  }
+  if(a.nota){doc.text('Nota cliente: '+String(a.nota).slice(0,140),14,y);y+=6;}
+  if(a.notaMaterial){doc.text('Nota interna: '+String(a.notaMaterial).slice(0,140),14,y);y+=6;}
   y+=4;
   doc.text('Firma del cliente:',14,y);y+=4;
   if(a.firma){try{doc.addImage(a.firma,'PNG',14,y,88,36);}catch(e){}y+=42;}
@@ -1136,8 +1196,105 @@ function renderClientAlbaranes(){var b=document.getElementById('clientAlbaranesL
   var list=albaranes.filter(function(a){return a.clienteId===clienteIdFijo;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});
   if(!list.length){b.innerHTML='<div class="empty">Aún no hay albaranes.</div>';return;}
   b.innerHTML=list.map(function(a){
-    return '<div class="alertrow" style="border-left-color:var(--green);"><div><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg</div></div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';
+    var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
+    var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);
+    return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+'</div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';
   }).join('');}
+
+// ===== GESTION DE ALBARANES (ADMIN) =====
+function renderAlbaranesAdmin(){
+  var selC=document.getElementById('albCliente');var selP=document.getElementById('albPeriodo');var selT=document.getElementById('albTipo');var box=document.getElementById('albaranesList');
+  if(!selC||!box)return;
+  var curC=selC.value,curP=selP.value,curT=selT?selT.value:'todos';
+  selC.innerHTML='<option value="todos">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+  if(curC)selC.value=curC;
+  if(!selC.value)selC.value='todos';
+  var months={};albaranes.forEach(function(a){if(a.fecha)months[ymOf(a.fecha)]=1;});
+  var mList=Object.keys(months).sort().reverse();
+  selP.innerHTML='<option value="todos">Todos los periodos</option>'+mList.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');
+  if(curP&&mList.indexOf(curP)!==-1)selP.value=curP;else selP.value='todos';
+  if(selT)selT.value=curT||'todos';
+  var cid=selC.value,per=selP.value,tip=selT?selT.value:'todos';
+  var list=albaranes.filter(function(a){
+    if(cid!=='todos'&&a.clienteId!==cid)return false;
+    if(per!=='todos'&&ymOf(a.fecha)!==per)return false;
+    if(tip!=='todos'&&a.tipo!==tip)return false;
+    return true;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});
+  if(!list.length){box.innerHTML='<div class="empty">No hay albaranes con ese filtro.</div>';return;}
+  box.innerHTML=list.map(function(a){
+    var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
+    var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);
+    return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;">'+
+      '<div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b> · '+esc(a.clienteNombreComercial||a.clienteNombre||'')+
+      '<div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+(a.tipo==='entrega'&&a.total?' · '+fp(a.total):'')+'</div>'+
+      mats+
+      (notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+
+      (a.firma?'<div class="otime">✍️ Firmado</div>':'<div class="otime">Sin firma</div>')+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      '<button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button>'+
+      '<button class="btn btn-grey btn-sm" onclick="abrirAlbaranEdit(\''+a.id+'\')">✏️</button>'+
+      '<button class="btn btn-red btn-sm" onclick="borrarAlbaran(\''+a.id+'\')">🗑️</button>'+
+      '</div></div>';
+  }).join('');
+}
+function abrirAlbaranEdit(id){
+  if(role!=='admin'){showToast('⚠️ Solo el admin puede editar albaranes','error');return;}
+  var a=albaranPorId(id);if(!a)return;
+  document.getElementById('albEditId').value=id;
+  document.getElementById('albEditKg').value=a.kg||0;
+  document.getElementById('albEditTotal').value=a.total||0;
+  document.getElementById('albEditNota').value=a.nota||'';
+  document.getElementById('albEditNotaMat').value=a.notaMaterial||'';
+  albEditPrendas=(a.prendas||[]).map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});
+  albEditQuitarFirmaFlag=false;
+  updateAlbEditFirmaEstado(a);
+  populateAlbEditPrendaSelect();
+  renderAlbEditPrendas();
+  document.getElementById('albaranEditModal').classList.remove('hidden');
+}
+function cerrarAlbaranEdit(){albEditPrendas=[];albEditQuitarFirmaFlag=false;document.getElementById('albaranEditModal').classList.add('hidden');}
+function populateAlbEditPrendaSelect(){var s=document.getElementById('albEditPrenda');if(!s)return;
+  s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
+function albEditAddPrenda(){
+  var tipo=document.getElementById('albEditPrenda').value;var qty=parseInt(document.getElementById('albEditPrendaQty').value)||0;
+  if(qty<=0){showToast('⚠️ Cantidad no válida','error');return;}
+  var id=document.getElementById('albEditId').value;var a=albaranPorId(id);
+  var precio=null;
+  if(a){var c=clientById(a.clienteId);var pp=c&&c.preciosPrendas;if(pp)precio=pp[tipo];}
+  if(precio==null){showToast('⚠️ El cliente no tiene precio para "'+tipo+'"','error');return;}
+  albEditPrendas.push({tipo:tipo,qty:qty,precio:precio,total:Math.round(qty*precio*100)/100});
+  renderAlbEditPrendas();
+}
+function albEditRemovePrenda(i){albEditPrendas.splice(i,1);renderAlbEditPrendas();}
+function renderAlbEditPrendas(){var b=document.getElementById('albEditPrendasList');if(!b)return;
+  if(!albEditPrendas.length){b.innerHTML='';return;}
+  b.innerHTML=albEditPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="albEditRemovePrenda('+i+')">✕</button></span></div>';}).join('');}
+function updateAlbEditFirmaEstado(a){var e=document.getElementById('albEditFirmaEstado');if(!e)return;
+  e.textContent=(a&&a.firma)?(albEditQuitarFirmaFlag?'Se quitará al guardar':'✍️ Tiene firma'):'Sin firma';}
+function albEditQuitarFirma(){albEditQuitarFirmaFlag=!albEditQuitarFirmaFlag;var a=albaranPorId(document.getElementById('albEditId').value);updateAlbEditFirmaEstado(a);}
+function guardarAlbaranEdit(){
+  if(!requireFB())return;
+  if(role!=='admin'){showToast('⚠️ Solo el admin puede editar albaranes','error');return;}
+  var id=document.getElementById('albEditId').value;var a=albaranPorId(id);if(!a)return;
+  var mat=0;albEditPrendas.forEach(function(p){mat+=p.total;});mat=Math.round(mat*100)/100;
+  var upd={
+    kg:parseFloat(document.getElementById('albEditKg').value)||0,
+    total:parseFloat(document.getElementById('albEditTotal').value)||0,
+    nota:document.getElementById('albEditNota').value,
+    notaMaterial:document.getElementById('albEditNotaMat').value,
+    prendas:albEditPrendas.slice(),
+    importeMaterial:mat
+  };
+  if(albEditQuitarFirmaFlag)upd.firma='';
+  db.ref('albaranes/'+id).update(upd).then(function(){cerrarAlbaranEdit();showToast('✅ Albarán actualizado','success');})
+    .catch(function(e){showToast('❌ Error: '+e.message,'error');});
+}
+function borrarAlbaran(id){
+  if(role!=='admin'){showToast('⚠️ Solo el admin puede borrar albaranes','error');return;}
+  if(!confirm('⚠️ Se borrará este albarán. No afecta al servicio ni a la factura.\n¿Continuar?'))return;
+  db.ref('albaranes/'+id).remove().then(function(){showToast('✅ Albarán borrado','success');})
+    .catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
 // ===== QR POR CLIENTE =====
 function verQRCliente(id){var c=clientById(id);if(!c)return;var url=urlQRCliente(id);qrModalUrl=url;
@@ -1770,7 +1927,8 @@ function subscribeAll(){if(!firebaseReady||!db)return;
   }
   db.ref('albaranes').on('value',function(s){var d=s.val()||{};albaranes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
     if(role==='cliente')renderClientAlbaranes();
-    if(isStaff())renderStaffServicios();});
+    if(isStaff())renderStaffServicios();
+    if(role==='admin')renderAlbaranesAdmin();});
   db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
     if(esAdminOGerencia()){renderClientes();renderResumen();renderQuickClientes();}
     if(isStaff())renderServCliList();
