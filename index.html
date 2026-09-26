@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-25-L23 -->
+<!-- VERSION: LAV-2026-09-25-L24 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -213,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
         <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
         <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
         <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-25 L23</div>
+        <div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-25 L24</div>
         <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
       </div>
     </div>
@@ -678,7 +678,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L23';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L24';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -1049,6 +1049,7 @@ function renderStaffServicios(){var box=document.getElementById('staffServicios'
       }).join('')+'</div>'):'';
     var tsParts=[];
     if(s.tsSolicitado)tsParts.push('Sol. '+fdt(s.tsSolicitado));
+    if(s.tsRecogido)tsParts.push('Rec. '+fdt(s.tsRecogido));
     if(s.tsPesado)tsParts.push('Pes. '+fdt(s.tsPesado));
     if(s.tsEntregado)tsParts.push('Ent. '+fdt(s.tsEntregado));
     var tsLine=tsParts.length?('<div class="otime" style="margin-top:4px;">🕒 '+tsParts.join(' · ')+'</div>'):'';
@@ -1106,7 +1107,7 @@ function retrocederEstado(id){
   var borrarFactura=null;
   if(prev==='PESADO'){upd.tsEntregado=null;}
   if(prev==='RECOGIDO'){
-    upd.tsPesado=null;upd.facturaId=null;upd.kg=null;upd.prendas=null;upd.importeMaterial=null;upd.materialEspecial=null;upd.notaMaterial=null;upd.total=null;upd.diferenciaKg=null;
+    upd.tsPesado=null;upd.facturaId=null;upd.kg=null;upd.prendas=null;upd.importeMaterial=null;upd.materialEspecial=null;upd.notaMaterial=null;upd.total=null;upd.diferenciaKg=null;upd.tsRecogido=null;
     if(s.facturaId){borrarFactura=facturaPorNumero(s.facturaId);}
   }
   var ops=[];
@@ -1145,6 +1146,15 @@ function saveTs(){if(!requireFB())return;var id=document.getElementById('tsId').
   }).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 
 // ===== ALBARANES =====
+function fechaRecogidaInfo(servicioId){
+  var albRec=null;
+  for(var i=0;i<albaranes.length;i++){if(albaranes[i].servicioId===servicioId&&albaranes[i].tipo==='recogida'){albRec=albaranes[i];break;}}
+  if(albRec&&albRec.fecha){return {texto:fdt(albRec.fecha)};}
+  var s=servicioPorId(servicioId);
+  if(s&&s.tsRecogido){return {texto:fdt(s.tsRecogido)};}
+  if(s&&s.fechaRecogida){return {texto:fmtFecha(s.fechaRecogida)+' (programada)'};}
+  return null;
+}
 function preguntarAlbaran(sid,tipo){
   if(confirm('¿Generar albarán de '+tipo+' con firma del cliente?')){abrirAlbaranModal(sid,tipo);}
 }
@@ -1174,11 +1184,14 @@ function abrirAlbaranModal(sid,tipo){
   albCtx={servicioId:sid,tipo:tipo};
   document.getElementById('albTitle').textContent=tipo==='recogida'?'📄 Albarán de recogida':'📄 Albarán de entrega';
   var kg=tipo==='recogida'?((s.pesoCliente!=null)?s.pesoCliente:(s.kg||0)):(s.kg||0);
+  var frLine='';
+  if(tipo==='entrega'){var fr=fechaRecogidaInfo(sid);if(fr){frLine='<div><b>📅 Fecha de recogida:</b> '+esc(fr.texto)+'</div>';}}
   var html='<div><b>Cliente:</b> '+esc(c.nombreComercial||c.nombre||s.clienteNombre||'')+'</div>'
     +(c.nif?'<div><b>NIF/CIF:</b> '+esc(c.nif)+'</div>':'')
     +(c.contacto?'<div><b>Contacto:</b> '+esc(c.contacto)+'</div>':'')
     +(c.telefono?'<div><b>Teléfono:</b> '+esc(c.telefono)+'</div>':'')
     +(c.direccion?'<div><b>Dirección:</b> '+esc(c.direccion)+'</div>':'')
+    +frLine
     +'<div><b>Kg:</b> '+kg+' kg</div>'
     +(tipo==='entrega'&&s.total?'<div><b>Total (IGIC incl.):</b> '+fp(s.total)+'</div>':'')
     +(s.nota?'<div><b>Nota del cliente:</b> '+esc(s.nota)+'</div>':'')
@@ -1246,6 +1259,7 @@ function descargarAlbaranPDF(id){
   doc.text('Fecha: '+fdt(a.fecha),14,50);
   doc.text('Cliente: '+(a.clienteNombreComercial||a.clienteNombre||''),14,58);
   var y=64;
+  if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){doc.text('Recogido el: '+fr.texto,14,y);y+=6;}}
   if(a.clienteNif){doc.text('NIF/CIF: '+a.clienteNif,14,y);y+=6;}
   if(a.clienteContacto){doc.text('Contacto: '+a.clienteContacto,14,y);y+=6;}
   if(a.clienteTelefono){doc.text('Teléfono: '+a.clienteTelefono,14,y);y+=6;}
@@ -1273,7 +1287,9 @@ function renderClientAlbaranes(){var b=document.getElementById('clientAlbaranesL
   b.innerHTML=list.map(function(a){
     var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
     var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);
-    return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+'</div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';
+    var frTxt='';
+    if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){frTxt=' · 📅 Recogida: '+fr.texto;}}
+    return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+frTxt+'</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+'</div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';
   }).join('');}
 
 // ===== GESTION DE ALBARANES (ADMIN) =====
@@ -1299,9 +1315,11 @@ function renderAlbaranesAdmin(){
   box.innerHTML=list.map(function(a){
     var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';
     var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);
+    var frTxt='';
+    if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){frTxt=' · 📅 Recogida: '+fr.texto;}}
     return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;">'+
       '<div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b> · '+esc(a.clienteNombreComercial||a.clienteNombre||'')+
-      '<div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+(a.tipo==='entrega'&&a.total?' · '+fp(a.total):'')+'</div>'+
+      '<div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+(a.tipo==='entrega'&&a.total?' · '+fp(a.total):'')+frTxt+'</div>'+
       mats+
       (notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+
       (a.firma?'<div class="otime">✍️ Firmado</div>':'<div class="otime">Sin firma</div>')+
@@ -1984,7 +2002,7 @@ function cambiarEstado(id,est){if(!puedeCambiar(est)){showToast('⚠️ Tu rol n
   var s=servicioPorId(id);
   var upd={estado:est,updatedAtLocal:nowLocal()};
   if(est==='ENTREGADO')upd.tsEntregado=nowLocal();
-  if(est==='RECOGIDO'&&s&&s.pesoCliente!=null&&(s.kg==null||s.kg===0)){upd.kg=s.pesoCliente;}
+  if(est==='RECOGIDO'){upd.tsRecogido=nowLocal();if(s&&s.pesoCliente!=null&&(s.kg==null||s.kg===0)){upd.kg=s.pesoCliente;}}
   db.ref('servicios/'+id).update(upd).then(function(){showToast('✅ '+stLabel(est),'success');
     if(est==='RECOGIDO')preguntarAlbaran(id,'recogida');
     if(est==='ENTREGADO')preguntarAlbaran(id,'entrega');
