@@ -2009,6 +2009,45 @@ listenProbe();}
 setInterval(function(){if(isStaff())renderStaffServicios();},30000);
 function boot(){applyBrand();applyRole();if(initFirebase()){subscribeAll();}}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
+</script><script>
+// ===== LAV-L31: RECUPERAR PEDIDOS Y FACTURAS DESDE FIREBASE (solo añade, no sustituye) =====
+(function(){
+function inyectar(){
+  var pane=document.getElementById('pane-ajustes');if(!pane||document.getElementById('recCard'))return;
+  var card=document.createElement('div');card.className='card';card.id='recCard';
+  card.innerHTML='<h3>♻️ Recuperar datos perdidos</h3>'+
+   '<div class="otime" style="margin-bottom:10px;">Reconstruye pedidos perdidos a partir de las facturas guardadas en Firebase y re-enlaza facturas sin pedido. No duplica nada.</div>'+
+   '<button class="btn btn-green" onclick="recuperarDesdeFirebase()">♻️ Recuperar pedidos y facturas (Firebase)</button>';
+  pane.appendChild(card);
+}
+window.recuperarDesdeFirebase=function(){
+  if(role!=='admin'){showToast('⚠️ Solo el admin puede recuperar','error');return;}
+  if(!requireFB())return;
+  showToast('🔍 Analizando Firebase…');
+  Promise.all([db.ref('facturas').once('value'),db.ref('servicios').once('value')]).then(function(sn){
+    var fac=sn[0].val()||{},serv=sn[1].val()||{};
+    var servById={},servByNum={};
+    Object.keys(serv).forEach(function(k){serv[k].id=k;servById[k]=serv[k];if(serv[k].facturaId)servByNum[serv[k].facturaId]=k;});
+    var crear=[],relink=[];
+    Object.keys(fac).forEach(function(fk){var f=fac[fk];if(!f||!f.numero)return;
+      var sid=f.servicioId;
+      if(sid&&servById[sid]){ if(!servById[sid].facturaId)relink.push({sid:sid,numero:f.numero}); }
+      else if(!servByNum[f.numero]){ crear.push(f); }
+    });
+    if(!crear.length&&!relink.length){showToast('✅ No hay nada que recuperar','success');return;}
+    if(!confirm('Se recuperarán '+crear.length+' pedido(s) perdidos y se re-enlazarán '+relink.length+' factura(s).\n¿Continuar?'))return;
+    var updates={};
+    relink.forEach(function(r){updates['servicios/'+r.sid+'/facturaId']=r.numero;});
+    crear.forEach(function(f){
+      var sid=f.servicioId||newId();var ts=f.timestamp||Date.now();
+      updates['servicios/'+sid]={clienteId:f.clienteId||'',clienteNombre:f.clienteNombre||'',nota:f.notaMaterial||f.materialDesc||'',estado:'PESADO',kg:f.kg||0,precioKilo:f.precioKilo||0,prendas:f.prendas||[],importeMaterial:f.materialImporte||0,materialEspecial:f.materialDesc||'',diferenciaKg:(f.diferenciaKg!=null?f.diferenciaKg:null),total:f.total||0,facturaId:f.numero,createdAtLocal:ts,tsSolicitado:ts,tsRecogido:ts,tsPesado:ts,updatedAtLocal:Date.now(),creadoPor:'recuperado'};
+    });
+    db.ref().update(updates).then(function(){showToast('✅ Recuperados '+crear.length+' pedido(s) · '+relink.length+' re-enlazada(s)','success');renderAll();})
+      .catch(function(e){showToast('❌ Error: '+e.message,'error');});
+  });
+};
+var t=setInterval(function(){if(window.role==='admin'){inyectar();clearInterval(t);}},400);
+})();
 </script>
 </body>
 </html>
