@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-29-L30 -->
+<!-- VERSION: LAV-2026-09-30-L31 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -205,7 +205,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
 <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
 <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-<div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-29 L30</div>
+<div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-30 L31</div>
 <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
 </div>
 </div>
@@ -320,6 +320,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <button class="btn btn-gold btn-sm" onclick="crearUsuario()">➕ Crear</button>
 </div>
 <div class="otime" style="margin-top:8px;">Crea o gestiona usuarios de acceso. Solo visible para Administrador.<br/>Por defecto: <b>admin/admin123</b> y <b>gerencia/gerencia123</b>.</div>
+</div>
+<div class="card" id="cardRecuperar">
+<h3>♻️ Recuperar datos perdidos</h3>
+<div class="otime" style="margin-bottom:10px;">Reconstruye los <b>pedidos perdidos</b> (recogida/pesado) a partir de las facturas guardadas en Firebase y re-enlaza facturas sin pedido. <b>No duplica nada.</b> Solo Admin.</div>
+<button class="btn btn-green" onclick="recuperarDesdeFirebase()">♻️ Recuperar pedidos y facturas (Firebase)</button>
 </div>
 <div class="card">
 <h3>🗑️ Reset de datos de prueba</h3>
@@ -580,7 +585,6 @@ function localISO(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.
 function fmtFecha(ymd){if(!ymd)return'';var p=String(ymd).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function plusOneHour(hhmm){if(!hhmm)return'';var p=String(hhmm).split(':');var h=parseInt(p[0],10)+1;if(h>23)h=23;return pad2(h)+':'+(p[1]||'00');}
 function fdt(ms){if(!ms)return'';var d=new Date(ms);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}
-function fdtFull(ms){if(!ms)return'';var d=new Date(ms);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}
 function toLocalInput(ms){if(!ms)return'';var d=new Date(ms);return localISO(d)+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
 function notaPlana(s){return (s&&s.nota)?String(s.nota).replace(/\s*\n\s*/g,' · '):'';}
 function applyBrand(){var n=empresa.nombre||'LavaExpressCanarias, S.L.U.';
@@ -636,6 +640,9 @@ var qrModalUrl='';
 var albEditPrendas=[];
 var albEditQuitarFirmaFlag=false;
 var accionCtx=null;
+var pesarServicioId=null;
+var pesarPrendas=[];
+var pesarEditMode=false;
 function esGerencia(){return role==='gerencia';}
 function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
 function puedeCambiar(d){return esAdminOGerencia()||role==='lavanderia';}
@@ -660,7 +667,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L30';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L31';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -919,6 +926,37 @@ ops.push(db.ref('config/contadorFactura').remove());
 ops.push(db.ref('config/contadorFacturaMensual').remove());
 Promise.all(ops).then(function(){knownState={};initialLoaded=false;showToast('✅ Datos de prueba borrados','success');renderAll();})
 .catch(function(e){showToast('❌ Error en reset: '+e.message,'error');});}
+// ===== LAV-L31: RECUPERAR PEDIDOS Y FACTURAS DESDE FIREBASE (sin duplicar) =====
+function recuperarDesdeFirebase(){
+if(role!=='admin'){showToast('⚠️ Solo el admin puede recuperar','error');return;}
+if(!requireFB())return;
+showToast('🔍 Analizando Firebase…');
+Promise.all([db.ref('facturas').once('value'),db.ref('servicios').once('value')]).then(function(sn){
+var fac=sn[0].val()||{};var serv=sn[1].val()||{};
+var servById={};Object.keys(serv).forEach(function(k){serv[k].id=k;servById[k]=serv[k];});
+var servByFactNum={};Object.keys(serv).forEach(function(k){if(serv[k].facturaId)servByFactNum[serv[k].facturaId]=serv[k];});
+var updates={};var crear=0,relink=0;
+Object.keys(fac).forEach(function(fk){var f=fac[fk];if(!f||!f.numero)return;
+var sid=f.servicioId;
+if(sid&&servById[sid]){
+if(!servById[sid].facturaId){updates['servicios/'+sid+'/facturaId']=f.numero;relink++;}
+}else if(!sid&&servByFactNum[f.numero]){
+updates['facturas/'+fk+'/servicioId']=servByFactNum[f.numero].id;relink++;
+}else{
+var newSid=sid||newId();
+var ts=f.timestamp||Date.now();
+updates['servicios/'+newSid]={clienteId:f.clienteId||'',clienteNombre:f.clienteNombre||'',nota:f.notaMaterial||'',estado:'PESADO',kg:f.kg||0,precioKilo:f.precioKilo||0,prendas:f.prendas||[],importeMaterial:f.materialImporte||0,materialEspecial:f.materialDesc||'',diferenciaKg:(f.diferenciaKg!=null?f.diferenciaKg:null),total:f.total||0,facturaId:f.numero,createdAtLocal:ts,tsSolicitado:ts,tsRecogido:ts,tsPesado:ts,updatedAtLocal:Date.now(),creadoPor:'recuperado'};
+if(!sid)updates['facturas/'+fk+'/servicioId']=newSid;
+crear++;
+}
+});
+var n=Object.keys(updates).length;
+if(n===0){showToast('✅ No hay nada que recuperar','success');return;}
+if(!confirm('Se recuperarán '+crear+' pedido(s) perdidos y se re-enlazarán '+relink+' registro(s).\nNo se duplica nada.\n¿Continuar?'))return;
+db.ref().update(updates).then(function(){showToast('✅ Recuperados '+crear+' pedido(s) · '+relink+' re-enlazado(s)','success');renderAll();})
+.catch(function(e){showToast('❌ Error: '+e.message,'error');});
+});
+}
 function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo);if(!c)return;
 clienteNombre=c.nombreComercial||c.nombre||'';
 var tag=document.getElementById('clienteTag'),txt=document.getElementById('clienteTagText');if(tag&&txt){tag.style.display='inline-flex';txt.textContent=clienteNombre;}}
@@ -935,6 +973,11 @@ var cardUsuarios=document.getElementById('cardUsuarios');
 if(cardUsuarios){
 if(role==='admin'){cardUsuarios.classList.remove('hidden');}
 else{cardUsuarios.classList.add('hidden');}
+}
+var cardRec=document.getElementById('cardRecuperar');
+if(cardRec){
+if(role==='admin'){cardRec.classList.remove('hidden');}
+else{cardRec.classList.add('hidden');}
 }
 var cliBox=document.getElementById('servCliBox');
 var resCard=document.getElementById('servResumenCard');
@@ -1100,11 +1143,12 @@ ops.push(db.ref('servicios/'+id).update(upd));
 Promise.all(ops).then(function(){showToast('✅ Servicio retrocedido a '+stLabel(prev),'success');})
 .catch(function(e){showToast('❌ Error: '+e.message,'error');});}
 function borrarServicio(id){if(!esAdminOGerencia()){showToast('⚠️ Solo admin/gerencia puede borrar','error');return;}
-if(!confirm('⚠️ Se borrará el servicio y su factura asociada.\n¿Continuar?'))return;
+if(!confirm('⚠️ Se borrará el servicio, su factura asociada y sus albaranes.\n¿Continuar?'))return;
 var s=servicioPorId(id);if(!s)return;
 var ops=[db.ref('servicios/'+id).remove()];
 if(s.facturaId){var f=facturaPorNumero(s.facturaId);if(f)ops.push(db.ref('facturas/'+f.id).remove());}
-Promise.all(ops).then(function(){showToast('✅ Servicio y factura borrados','success');})
+albaranesDeServicio(id).forEach(function(a){ops.push(db.ref('albaranes/'+a.id).remove());});
+Promise.all(ops).then(function(){showToast('✅ Servicio, factura y albaranes borrados','success');})
 .catch(function(e){showToast('❌ Error al borrar: '+e.message,'error');});}
 function abrirTsModal(id){var s=servicioPorId(id);if(!s)return;
 document.getElementById('tsId').value=id;
@@ -1322,6 +1366,7 @@ var safeNif=String(nif).replace(/[^a-zA-Z0-9]/g,'_');
 var key='NIF_'+safeNif+'_'+ym;
 db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();
 if(rec&&rec.numero){cb(rec);return;}
+if(!esAdminOGerencia()){cb({numero:'PREV-'+ym,nif:nif,ym:ym,provisional:true});return;}
 db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){
 if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}
 var n=snap.val();var numero=ym.replace('-','')+'-'+String(n).padStart(4,'0');
@@ -1373,12 +1418,14 @@ doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=
 doc.setFontSize(8);
 doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;
 doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
+if(rec.provisional){doc.setTextColor(220,38,38);doc.setFontSize(9);doc.text('DOCUMENTO PROVISIONAL — pendiente de numeración oficial por la empresa',14,y+6);doc.setTextColor(0,0,0);}
 doc.save('Factura_'+rec.numero+'.pdf');
 showToast('✅ PDF agrupado descargado: '+rec.numero,'success');}
 function ensureFacturaMensual(clientId,ym,cb){
 var key=clientId+'_'+ym;
 db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();
 if(rec&&rec.numero){cb(rec);return;}
+if(!esAdminOGerencia()){cb({numero:'PREV-'+ym,clientId:clientId,ym:ym,provisional:true});return;}
 db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){
 if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}
 var n=snap.val();var numero=ym.replace('-','')+'-'+String(n).padStart(4,'0');
@@ -1435,6 +1482,7 @@ doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=
 doc.setFontSize(8);
 doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;
 doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
+if(rec.provisional){doc.setTextColor(220,38,38);doc.setFontSize(9);doc.text('DOCUMENTO PROVISIONAL — pendiente de numeración oficial por la empresa',14,y+6);doc.setTextColor(0,0,0);}
 doc.save('Factura_'+rec.numero+'.pdf');
 showToast('✅ PDF descargado: '+rec.numero,'success');}
 function renderInformeClientes(){var s=document.getElementById('infCliente');if(!s)return;
@@ -1468,21 +1516,22 @@ return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;">'+
 '<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span></div>'+
 '</div>';
 }).join('');}
-// ===== Función clave: FECHAS EN EL EXCEL — RECOGIDA SEGÚN ALBARÁN =====
 function buildServiciosRows(list){
 return list.map(function(s){
 var c=clientById(s.clienteId)||{};
 var fechaServ=s.createdAtLocal?new Date(s.createdAtLocal).toLocaleDateString('es-ES'):'';
-// === FECHA DE RECOGIDA EXACTA: prioridad 1) albarán de recogida, 2) tsRecogido, 3) programada ===
-var tsRec=null;
+var tsRec=s.tsRecogido;
+if(!tsRec){
 for(var i=0;i<albaranes.length;i++){
 if(albaranes[i].servicioId===s.id&&albaranes[i].tipo==='recogida'&&albaranes[i].fecha){tsRec=albaranes[i].fecha;break;}
 }
-if(!tsRec&&s.tsRecogido)tsRec=s.tsRecogido;
-var fechaRec='';
-if(tsRec){fechaRec=fdtFull(tsRec);}
-else if(s.fechaRecogida){fechaRec=fmtFecha(s.fechaRecogida);}
-// ============================================================================================
+}
+if(!tsRec&&s.tsPesado)tsRec=s.tsPesado;
+if(!tsRec&&s.fechaRecogida){
+var p=String(s.fechaRecogida).split('-');
+if(p.length===3)tsRec=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();
+}
+var fechaRec=tsRec?new Date(tsRec).toLocaleDateString('es-ES'):'';
 var fechaPes=s.tsPesado?new Date(s.tsPesado).toLocaleDateString('es-ES'):'';
 var fechaEnt=s.tsEntregado?new Date(s.tsEntregado).toLocaleDateString('es-ES'):'';
 var factMensual=(s.tsPesado&&s.clienteId)?(facturaMensualDe(s.clienteId,ymOf(s.tsPesado))||'—'):'—';
@@ -1698,10 +1747,15 @@ nota:s.nota||'',notaMaterial:s.notaMaterial||'',
 prendas:prendas,importeMaterial:matTotal,
 fecha:now,firma:firma,emitidoPor:role
 };
-db.ref('albaranes').push(rec).then(function(){
+var albId=newId();
+var updates={};
+updates['albaranes/'+albId]=rec;
 if(tipoCtx==='recogida'){
-db.ref('servicios/'+s.id).update({prendas:prendas,importeMaterial:matTotal,materialEspecial:prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', ')});
+updates['servicios/'+s.id+'/prendas']=prendas;
+updates['servicios/'+s.id+'/importeMaterial']=matTotal;
+updates['servicios/'+s.id+'/materialEspecial']=prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', ');
 }
+db.ref().update(updates).then(function(){
 cerrarAlbaranModal();showToast('✅ Albarán guardado','success');
 }).catch(function(e){showToast('❌ Error: '+e.message,'error');});
 }
@@ -1804,250 +1858,4 @@ populateAlbEditPrendaSelect();
 renderAlbEditPrendas();
 document.getElementById('albaranEditModal').classList.remove('hidden');
 }
-function cerrarAlbaranEdit(){albEditPrendas=[];albEditQuitarFirmaFlag=false;document.getElementById('albaranEditModal').classList.add('hidden');}
-function populateAlbEditPrendaSelect(){var s=document.getElementById('albEditPrenda');if(!s)return;
-s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
-function albEditAddPrenda(){
-var tipo=document.getElementById('albEditPrenda').value;var qty=parseInt(document.getElementById('albEditPrendaQty').value)||0;
-if(qty<=0){showToast('⚠️ Cantidad no válida','error');return;}
-var id=document.getElementById('albEditId').value;var a=albaranPorId(id);
-var precio=null;
-if(a){var c=clientById(a.clienteId);var pp=c&&c.preciosPrendas;if(pp)precio=pp[tipo];}
-if(precio==null){showToast('⚠️ El cliente no tiene precio para "'+tipo+'"','error');return;}
-albEditPrendas.push({tipo:tipo,qty:qty,precio:precio,total:Math.round(qty*precio*100)/100});
-renderAlbEditPrendas();
-}
-function albEditRemovePrenda(i){albEditPrendas.splice(i,1);renderAlbEditPrendas();}
-function renderAlbEditPrendas(){var b=document.getElementById('albEditPrendasList');if(!b)return;
-if(!albEditPrendas.length){b.innerHTML='';return;}
-b.innerHTML=albEditPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="albEditRemovePrenda('+i+')">✕</button></span></div>';}).join('');}
-function updateAlbEditFirmaEstado(a){var e=document.getElementById('albEditFirmaEstado');if(!e)return;
-e.textContent=(a&&a.firma)?(albEditQuitarFirmaFlag?'Se quitará al guardar':'✍️ Tiene firma'):'Sin firma';}
-function albEditQuitarFirma(){albEditQuitarFirmaFlag=!albEditQuitarFirmaFlag;var a=albaranPorId(document.getElementById('albEditId').value);updateAlbEditFirmaEstado(a);}
-function guardarAlbaranEdit(){
-if(!requireFB())return;
-if(role!=='admin'){showToast('⚠️ Solo el admin puede editar albaranes','error');return;}
-var id=document.getElementById('albEditId').value;var a=albaranPorId(id);if(!a)return;
-var mat=0;albEditPrendas.forEach(function(p){mat+=p.total;});mat=Math.round(mat*100)/100;
-var upd={
-kg:parseFloat(document.getElementById('albEditKg').value)||0,
-total:parseFloat(document.getElementById('albEditTotal').value)||0,
-nota:document.getElementById('albEditNota').value,
-notaMaterial:document.getElementById('albEditNotaMat').value,
-prendas:albEditPrendas.slice(),
-importeMaterial:mat
-};
-if(albEditQuitarFirmaFlag)upd.firma='';
-db.ref('albaranes/'+id).update(upd).then(function(){cerrarAlbaranEdit();showToast('✅ Albarán actualizado','success');})
-.catch(function(e){showToast('❌ Error: '+e.message,'error');});
-}
-function borrarAlbaran(id){
-if(role!=='admin'){showToast('⚠️ Solo el admin puede borrar albaranes','error');return;}
-if(!confirm('⚠️ Se borrará este albarán. No afecta al servicio ni a la factura.\n¿Continuar?'))return;
-db.ref('albaranes/'+id).remove().then(function(){showToast('✅ Albarán borrado','success');})
-.catch(function(e){showToast('❌ Error: '+e.message,'error');});}
-function populatePrendaSelect(){var s=document.getElementById('pesarPrenda');if(!s)return;
-s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
-function servicioActual(){return servicioPorId(pesarServicioId);}
-function preciosPrendasCliente(){var s=servicioActual();if(!s)return null;var c=clientById(s.clienteId);return (c&&c.preciosPrendas)||null;}
-function addPrendaLine(){var tipo=document.getElementById('pesarPrenda').value;var qty=parseInt(document.getElementById('pesarPrendaQty').value)||0;
-if(qty<=0){showToast('⚠️ Nº de prendas no válido','error');return;}
-var pp=preciosPrendasCliente();var precio=pp?pp[tipo]:null;
-if(precio==null){showToast('⚠️ El cliente no tiene precio para "'+tipo+'". Ponlo en su ficha.','error');return;}
-pesarPrendas.push({tipo:tipo,qty:qty,precio:precio,total:Math.round(qty*precio*100)/100});
-renderPrendasList();updatePesarPreview();}
-function removePrendaLine(i){pesarPrendas.splice(i,1);renderPrendasList();updatePesarPreview();}
-function renderPrendasList(){var b=document.getElementById('pesarPrendasList');if(!b)return;
-if(!pesarPrendas.length){b.innerHTML='';return;}
-b.innerHTML=pesarPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="removePrendaLine('+i+')">✕</button></span></div>';}).join('');}
-function prendasTotal(){var t=0;pesarPrendas.forEach(function(p){t+=p.total;});return Math.round(t*100)/100;}
-var pesarServicioId=null;
-var pesarPrendas=[];
-var pesarEditMode=false;
-function abrirPesarModal(id,edit){pesarServicioId=id;pesarEditMode=!!edit;
-var s=servicioActual();
-document.getElementById('pesarTitle').textContent=pesarEditMode?'✏️ Editar servicio pesado':'⚖️ Pesar servicio';
-var notaBox=document.getElementById('pesarNotaPedido');
-if(notaBox){
-if(s&&s.nota){notaBox.style.display='block';notaBox.textContent='📝 Nota del cliente: '+s.nota;}
-else{notaBox.style.display='none';notaBox.textContent='';}
-}
-if(s&&s.prendas&&s.prendas.length){
-pesarPrendas=s.prendas.map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});
-}else{pesarPrendas=[];}
-var prefillKg=(s&&s.kg)?s.kg:((s&&s.pesoCliente!=null)?s.pesoCliente:'');
-document.getElementById('pesarKg').value=prefillKg;
-document.getElementById('pesarNota').value=(s&&s.notaMaterial)||'';
-document.getElementById('pesarPrendaQty').value='1';
-populatePrendaSelect();renderPrendasList();
-document.getElementById('pesarModal').classList.remove('hidden');updatePesarPreview();}
-function cerrarPesarModal(){document.getElementById('pesarModal').classList.add('hidden');pesarServicioId=null;pesarPrendas=[];pesarEditMode=false;}
-function updatePesarPreview(){var el=document.getElementById('pesarPreview');if(!el||!pesarServicioId)return;
-var s=servicioActual();if(!s)return;
-var kg=parseFloat(document.getElementById('pesarKg').value)||0;
-var pk=Number(s.precioKilo)||0;
-var base=kg*pk;var mat=prendasTotal();var tot=base+mat;
-el.textContent=kg+' kg × '+fp(pk)+' = '+fp(base)+(mat?' + prendas '+fp(mat):'')+'  →  TOTAL '+fp(tot);
-var pcEl=document.getElementById('pesarPesoCliente');var difEl=document.getElementById('pesarDif');
-if(pcEl)pcEl.textContent=(s.pesoCliente!=null? s.pesoCliente+' kg':'—');
-if(difEl){
-if(s.pesoCliente!=null&&kg>0){var d=Math.round((kg-s.pesoCliente)*100)/100;difEl.textContent='Diferencia: '+d.toFixed(2)+' kg';difEl.style.color=(d!==0?'var(--red)':'var(--green)');difEl.style.fontWeight='700';}
-else{difEl.textContent='Diferencia: —';difEl.style.color='var(--t2)';difEl.style.fontWeight='400';}
-}}
-function confirmarPesaje(){if(!requireFB()||!pesarServicioId)return;
-var kg=parseFloat(document.getElementById('pesarKg').value);
-var note=document.getElementById('pesarNota').value.trim();
-if(!kg||kg<=0){showToast('⚠️ Kilos no válidos','error');return;}
-var s=servicioActual();if(!s)return;
-var base=kg*(Number(s.precioKilo)||0);
-var mat=prendasTotal();
-var summary=pesarPrendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', ');
-var matDesc=(summary?summary:'')+(note?(summary?' | ':'')+note:'');
-var dif=(s.pesoCliente!=null)?Math.round((kg-s.pesoCliente)*100)/100:null;
-var total=base+mat;var now=nowLocal();
-if(pesarEditMode){
-var upd={kg:kg,prendas:pesarPrendas,importeMaterial:mat,materialEspecial:matDesc,notaMaterial:note,diferenciaKg:dif,total:Math.round(total*100)/100,updatedAtLocal:now};
-db.ref('servicios/'+s.id).update(upd).then(function(){
-if(s.facturaId){var f=facturaPorNumero(s.facturaId);
-if(f){db.ref('facturas/'+f.id).update({kg:kg,precioKilo:s.precioKilo,base:Math.round(base*100)/100,prendas:pesarPrendas,materialImporte:mat,materialDesc:matDesc,total:Math.round(total*100)/100});}}
-cerrarPesarModal();showToast('✅ Servicio y factura actualizados','success');
-}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
-return;
-}
-nextNumeroFactura(function(num){
-var d=new Date(now);
-db.ref('facturas/'+newId()).set({numero:num,fecha:localISO(d),hora:pad2(d.getHours())+':'+pad2(d.getMinutes()),timestamp:now,clienteId:s.clienteId,clienteNombre:s.clienteNombre,kg:kg,precioKilo:s.precioKilo,base:Math.round(base*100)/100,prendas:pesarPrendas,materialImporte:mat,materialDesc:matDesc,notaMaterial:note,diferenciaKg:dif,total:Math.round(total*100)/100,servicioId:s.id})
-.then(function(){return db.ref('servicios/'+pesarServicioId).update({estado:'PESADO',kg:kg,prendas:pesarPrendas,importeMaterial:mat,materialEspecial:matDesc,notaMaterial:note,diferenciaKg:dif,total:Math.round(total*100)/100,tsPesado:now,updatedAtLocal:now,facturaId:num});})
-.then(function(){cerrarPesarModal();showToast('✅ '+num+': '+fp(total),'success');});});}
-function preciosPrendasPara(cid){var c=clientById(cid);return (c&&c.preciosPrendas)||null;}
-function populateRecPrendaSelect(){var s=document.getElementById('recPrenda');if(!s)return;
-s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
-function addRecPrenda(){var tipo=document.getElementById('recPrenda').value;var qty=parseInt(document.getElementById('recPrendaQty').value)||0;
-if(qty<=0){showToast('⚠️ Nº de prendas no válido','error');return;}
-var pp=preciosPrendasPara(recogidaClienteId||clienteIdFijo);var precio=pp?pp[tipo]:null;
-if(precio==null){showToast('⚠️ El cliente no tiene precio para "'+tipo+'". Ponlo en su ficha.','error');return;}
-recPrendas.push({tipo:tipo,qty:qty,precio:precio,total:Math.round(qty*precio*100)/100});
-renderRecPrendasList();}
-function removeRecPrenda(i){recPrendas.splice(i,1);renderRecPrendasList();}
-function renderRecPrendasList(){var b=document.getElementById('recPrendasList');if(!b)return;
-if(!recPrendas.length){b.innerHTML='';return;}
-b.innerHTML=recPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="removeRecPrenda('+i+')">✕</button></span></div>';}).join('');}
-function abrirRecogidaModal(clientId){
-recogidaClienteId=clientId||null;
-recPrendas=[];
-var d=new Date();
-document.getElementById('recFecha').value=localISO(d);
-document.getElementById('recDesde').value='';
-document.getElementById('recHasta').value='';
-document.getElementById('recPesoCliente').value='';
-document.getElementById('recNota').value='';
-populateRecPrendaSelect();renderRecPrendasList();
-document.getElementById('recPrendaQty').value='1';
-var t=document.getElementById('recTitle');
-if(t){var c=recogidaClienteId?clientById(recogidaClienteId):null;t.textContent='🧺 Solicitar recogida'+(c?' — '+(c.nombreComercial||c.nombre||''):'');}
-document.getElementById('recogidaModal').classList.remove('hidden');}
-function cerrarRecogidaModal(){recogidaClienteId=null;recPrendas=[];document.getElementById('recogidaModal').classList.add('hidden');}
-function confirmarRecogida(){if(!requireFB())return;
-var cid=recogidaClienteId||clienteIdFijo;
-var fecha=document.getElementById('recFecha').value;
-if(!fecha){showToast('⚠️ Elige la fecha de recogida','error');return;}
-var desde=document.getElementById('recDesde').value;
-var hasta=document.getElementById('recHasta').value;
-var pc=parseFloat(document.getElementById('recPesoCliente').value);
-var pesoCliente=isNaN(pc)?null:pc;
-var nota=document.getElementById('recNota').value.trim();
-var c=clientById(cid);if(!c){showToast('⚠️ Cliente no detectado','error');return;}
-var creadoPor=recogidaClienteId?'admin':'cliente';
-var id=newId();var now=nowLocal();
-db.ref('servicios/'+id).set({clienteId:cid,clienteNombre:c.nombreComercial||c.nombre||'',nota:nota,estado:'SOLICITADO',kg:0,precioKilo:c.precioKilo||0,prendas:recPrendas.slice(),importeMaterial:0,materialEspecial:'',total:0,pesoCliente:pesoCliente,fechaRecogida:fecha,franjaDesde:desde,franjaHasta:hasta,creadoPor:creadoPor,tsSolicitado:now,createdAtLocal:now,updatedAtLocal:now})
-.then(function(){recogidaClienteId=null;recPrendas=[];cerrarRecogidaModal();showToast('✅ Solicitud enviada','success');});}
-function renderClientState(){var card=document.getElementById('clientStateCard');
-var l=clientServicios.slice().sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);})[0];
-if(!l){card.classList.add('hidden');return;}card.classList.remove('hidden');
-document.getElementById('clientStateValue').innerHTML='<span class="st '+stClass(l.estado)+'" style="font-size:18px;padding:8px 14px;">'+stLabel(l.estado)+'</span>';
-var extra='';
-if(l.pesoCliente!=null&&l.kg!=null){var dv=Math.round((l.kg-l.pesoCliente)*100)/100;extra=' · Dif. peso '+dv+' kg';}
-document.getElementById('clientStateItems').textContent=((l.nota||'').split('\n')[0])+extra;}
-function renderClientServicios(){var b=document.getElementById('clientServicios');if(!b)return;
-if(!clientServicios.length){b.innerHTML='<div class="empty">Aún no tienes servicios.</div>';return;}
-var s=clientServicios.slice().sort(function(a,b2){return(b2.createdAtLocal||0)-(a.createdAtLocal||0);});
-b.innerHTML=s.map(function(serv){return'<div class="order '+stClass(serv.estado)+'"><div class="oitems">'+escL(serv.nota||'')+'</div>'+lineaRecogida(serv)+diferenciaLine(serv)+'<div class="ofoot"><span class="st '+stClass(serv.estado)+'">'+stLabel(serv.estado)+'</span><span class="otime">'+ftime(serv.createdAtLocal)+'</span></div></div>';}).join('');}
-function renderTotal(){var base=0;clientServicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)base+=Number(s.total)||0;});
-var c=document.getElementById('totalCard'),v=document.getElementById('totalValue'),bd=document.getElementById('totalBreakdown');
-if(base>0){c.style.display='block';v.textContent=fp(totalConIGIC(base));if(bd)bd.textContent='Base '+fp(base)+' + IGIC 7% '+fp(igicOf(base));}
-else{c.style.display='none';if(bd)bd.textContent='';}}
-function renderClientFacturas(){var b=document.getElementById('clientFacturasList');if(!b)return;
-var set={};
-servicios.forEach(function(s){if(s.clienteId===clienteIdFijo&&['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&(Number(s.total)||0)>0){var ym=ymOf(s.tsPesado||s.createdAtLocal);if(!set[ym])set[ym]={n:0,kg:0,t:0};set[ym].n++;set[ym].kg+=Number(s.kg)||0;set[ym].t+=Number(s.total)||0;}});
-var months=Object.keys(set).sort().reverse();
-if(!months.length){b.innerHTML='<div class="empty">Aún no hay facturas.</div>';return;}
-b.innerHTML=months.map(function(m){var s=set[m];
-return'<div class="alertrow" style="border-left-color:var(--purple)"><div><b>'+monthLabel(m)+'</b><div class="otime">'+s.n+' lavado(s) · '+s.kg.toFixed(1)+' kg · IGIC '+fp(igicOf(s.t))+'</div></div><div style="display:flex;align-items:center;gap:8px;"><b>'+fp(totalConIGIC(s.t))+'</b><button class="btn btn-grey btn-sm" onclick="generarPDFMensual(\''+clienteIdFijo+'\',\''+m+'\')">⬇ PDF</button></div></div>';}).join('');}
-function subscribeAll(){if(!firebaseReady||!db)return;
-db.ref('config/empresa').on('value',function(s){var v=s.val();
-if(v){empresa.nombre=v.nombre||empresa.nombre;empresa.nif=v.nif||empresa.nif;empresa.direccion=v.direccion||empresa.direccion;empresa.cuenta=v.cuenta||empresa.cuenta;}
-applyBrand();if(esAdminOGerencia())renderEmpresa();});
-if(role==='admin'){
-db.ref('config/usuarios').on('value',function(s){renderUsuariosList(s.val());});
-db.ref('facturasMensuales').on('value',function(s){var d=s.val()||{};facturasMensuales=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});});
-}
-db.ref('albaranes').on('value',function(s){var d=s.val()||{};albaranes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
-if(role==='cliente')renderClientAlbaranes();
-if(isStaff())renderStaffServicios();
-if(role==='admin')renderAlbaranesAdmin();});
-db.ref('clientes').on('value',function(s){var d=s.val()||{};clientes=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||'').localeCompare(String(b.nombre||''));});
-if(esAdminOGerencia()){renderClientes();renderResumen();renderQuickClientes();}
-if(isStaff())renderServCliList();
-if(role==='cliente')resolveClient();});
-db.ref('servicios').on('value',function(s){var d=s.val()||{};servicios=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});
-clientServicios=servicios.filter(function(o){return o.clienteId===clienteIdFijo;});
-if(esAdminOGerencia())renderResumen();
-renderAll();});
-db.ref('facturas').on('value',function(s){var d=s.val()||{};facturas=Object.keys(d).map(function(k){var o=d[k];o.id=k;return o;});facturas.sort(function(a,b){return(b.timestamp||0)-(a.timestamp||0);});
-if(role==='admin'){renderContab();renderFacturas();renderResumen();}});
-listenProbe();}
-setInterval(function(){if(isStaff())renderStaffServicios();},30000);
-function boot(){applyBrand();applyRole();if(initFirebase()){subscribeAll();}}
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
-</script><script>
-// ===== LAV-L31: RECUPERAR PEDIDOS Y FACTURAS DESDE FIREBASE (solo añade, no sustituye) =====
-(function(){
-function inyectar(){
-  var pane=document.getElementById('pane-ajustes');if(!pane||document.getElementById('recCard'))return;
-  var card=document.createElement('div');card.className='card';card.id='recCard';
-  card.innerHTML='<h3>♻️ Recuperar datos perdidos</h3>'+
-   '<div class="otime" style="margin-bottom:10px;">Reconstruye pedidos perdidos a partir de las facturas guardadas en Firebase y re-enlaza facturas sin pedido. No duplica nada.</div>'+
-   '<button class="btn btn-green" onclick="recuperarDesdeFirebase()">♻️ Recuperar pedidos y facturas (Firebase)</button>';
-  pane.appendChild(card);
-}
-window.recuperarDesdeFirebase=function(){
-  if(role!=='admin'){showToast('⚠️ Solo el admin puede recuperar','error');return;}
-  if(!requireFB())return;
-  showToast('🔍 Analizando Firebase…');
-  Promise.all([db.ref('facturas').once('value'),db.ref('servicios').once('value')]).then(function(sn){
-    var fac=sn[0].val()||{},serv=sn[1].val()||{};
-    var servById={},servByNum={};
-    Object.keys(serv).forEach(function(k){serv[k].id=k;servById[k]=serv[k];if(serv[k].facturaId)servByNum[serv[k].facturaId]=k;});
-    var crear=[],relink=[];
-    Object.keys(fac).forEach(function(fk){var f=fac[fk];if(!f||!f.numero)return;
-      var sid=f.servicioId;
-      if(sid&&servById[sid]){ if(!servById[sid].facturaId)relink.push({sid:sid,numero:f.numero}); }
-      else if(!servByNum[f.numero]){ crear.push(f); }
-    });
-    if(!crear.length&&!relink.length){showToast('✅ No hay nada que recuperar','success');return;}
-    if(!confirm('Se recuperarán '+crear.length+' pedido(s) perdidos y se re-enlazarán '+relink.length+' factura(s).\n¿Continuar?'))return;
-    var updates={};
-    relink.forEach(function(r){updates['servicios/'+r.sid+'/facturaId']=r.numero;});
-    crear.forEach(function(f){
-      var sid=f.servicioId||newId();var ts=f.timestamp||Date.now();
-      updates['servicios/'+sid]={clienteId:f.clienteId||'',clienteNombre:f.clienteNombre||'',nota:f.notaMaterial||f.materialDesc||'',estado:'PESADO',kg:f.kg||0,precioKilo:f.precioKilo||0,prendas:f.prendas||[],importeMaterial:f.materialImporte||0,materialEspecial:f.materialDesc||'',diferenciaKg:(f.diferenciaKg!=null?f.diferenciaKg:null),total:f.total||0,facturaId:f.numero,createdAtLocal:ts,tsSolicitado:ts,tsRecogido:ts,tsPesado:ts,updatedAtLocal:Date.now(),creadoPor:'recuperado'};
-    });
-    db.ref().update(updates).then(function(){showToast('✅ Recuperados '+crear.length+' pedido(s) · '+relink.length+' re-enlazada(s)','success');renderAll();})
-      .catch(function(e){showToast('❌ Error: '+e.message,'error');});
-  });
-};
-var t=setInterval(function(){if(window.role==='admin'){inyectar();clearInterval(t);}},400);
-})();
-</script>
-</body>
-</html>
+function cerrarAlbaranEdit
