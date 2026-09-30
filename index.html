@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-09-30-L31-GESTION -->
+<!-- VERSION: LAV-2026-09-30-L30-FINAL -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -109,29 +109,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 .alb-datos b{color:var(--t1);}
 .debug-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;}
 .debug-line{padding:2px 0;color:var(--t2);} .debug-line.error{color:var(--red);} .debug-line.success{color:var(--green);}
-.recuperacion-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px;}
-.recuperacion-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;}
-.recuperacion-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
-.recuperacion-stat b{font-size:20px;color:var(--gold);display:block;}
-.recuperacion-stat span{font-size:11px;color:var(--t2);text-transform:uppercase;}
-.recuperacion-log{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;}
-.recuperacion-log-line{padding:2px 0;color:var(--t2);}
-.recuperacion-log-line.success{color:var(--green);}
-.recuperacion-log-line.error{color:var(--red);}
-.recuperacion-log-line.info{color:var(--blue);}
-.gestion-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px;}
-.gestion-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;}
-.gestion-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
-.gestion-stat b{font-size:20px;display:block;}
-.gestion-stat b.ok{color:var(--green);}
-.gestion-stat b.warn{color:var(--gold);}
-.gestion-stat b.err{color:var(--red);}
-.gestion-stat span{font-size:11px;color:var(--t2);text-transform:uppercase;}
-.gestion-list{max-height:500px;overflow-y:auto;margin-top:12px;}
-.gestion-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-.gestion-item.warn{border-left:4px solid var(--gold);}
-.gestion-item.err{border-left:4px solid var(--red);}
-.gestion-item.ok{border-left:4px solid var(--green);}
 @media(max-width:768px){.container{padding:12px;}.ofoot{flex-direction:column;align-items:stretch;}.ofoot .btn{width:100%;}.tabbar{top:56px;}}
 </style>
 </head>
@@ -228,7 +205,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
 <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
 <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-<div class="otime" style="margin-top:8px;">Versión: LAV-L31</div>
+<div class="otime" style="margin-top:8px;">Versión: LAV-2026-09-30 L30-FINAL</div>
 <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
 </div>
 </div>
@@ -305,28 +282,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <div class="otime" id="fmIndicador" style="margin-bottom:10px;"></div>
 <button class="btn btn-gold" onclick="adminGenerarFM()">📄 Generar y descargar PDF</button>
 <div class="otime" style="margin-top:8px;">Elige si facturar por cliente individual o agrupar todos los clientes con el mismo NIF/CIF.</div>
-</div>
-<div class="card">
-<h3>🔍 Recuperar facturas y pedidos perdidos</h3>
-<div class="otime" style="margin-bottom:10px;">Este botón analiza la base de datos y recupera facturas mensuales que puedan haberse perdido al cambiar la nomenclatura. Las facturas antiguas (con prefijo fm-) convivirán con las nuevas.</div>
-<button class="btn btn-purple btn-block" onclick="analizarRecuperacion()" style="margin-bottom:10px;">🔍 Analizar y recuperar</button>
-<div id="recuperacionPanel" class="recuperacion-panel hidden">
-<div class="recuperacion-stats" id="recuperacionStats"></div>
-<div id="recuperacionDetalle" class="otime" style="margin-bottom:10px;"></div>
-<button class="btn btn-green btn-block" id="btnEjecutarRecuperacion" onclick="ejecutarRecuperacion()" style="margin-bottom:10px;">✅ Ejecutar recuperación</button>
-<div id="recuperacionLog" class="recuperacion-log hidden"></div>
-</div>
-</div>
-<div class="card" id="gestionPanelCard">
-<h3>🔧 Gestión de incidencias</h3>
-<div class="otime" style="margin-bottom:10px;">Verifica la integridad de facturas y pedidos. Permite editar o borrar facturas erróneas. Solo visible para admin.</div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-<button class="btn btn-gold" onclick="verificarIntegridad()">🔍 Verificar integridad</button>
-<button class="btn btn-grey" id="btnExportarDiagnostico" onclick="exportarDiagnostico()" style="display:none;">📥 Exportar diagnóstico</button>
-</div>
-<div class="gestion-stats" id="gestionStats"></div>
-<div id="gestionDetalle" class="otime" style="margin-bottom:10px;"></div>
-<div id="gestionList" class="gestion-list"></div>
 </div>
 <div class="card">
 <h3>📋 Informe de servicios</h3>
@@ -600,21 +555,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 </div>
 </div>
 </div>
-<div id="facturaMensualEditModal" class="modal-overlay hidden">
-<div class="modal-content">
-<h3 style="margin-bottom:12px;">✏️ Editar factura mensual</h3>
-<input type="hidden" id="fmEditId"/>
-<input type="hidden" id="fmEditKey"/>
-<div class="fld-label">Número</div>
-<input class="input" id="fmEditNumero"/>
-<div class="fld-label">Mes (YYYY-MM)</div>
-<input class="input" type="month" id="fmEditMes"/>
-<div style="display:flex;gap:10px;margin-top:12px;">
-<button class="btn btn-grey" onclick="cerrarFacturaMensualEdit()">Cancelar</button>
-<button class="btn btn-gold" style="flex:1;" onclick="guardarFacturaMensualEdit()">💾 Guardar</button>
-</div>
-</div>
-</div>
 <div class="toast" id="toast"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -685,8 +625,6 @@ var qrModalUrl='';
 var albEditPrendas=[];
 var albEditQuitarFirmaFlag=false;
 var accionCtx=null;
-var recuperacionData=null;
-var diagnosticoData=null;
 function esGerencia(){return role==='gerencia';}
 function esAdminOGerencia(){return role==='admin'||role==='gerencia';}
 function puedeCambiar(d){return esAdminOGerencia()||role==='lavanderia';}
@@ -705,14 +643,13 @@ function servicioPorId(id){for(var i=0;i<servicios.length;i++)if(servicios[i].id
 function facturaPorNumero(num){for(var i=0;i<facturas.length;i++)if(facturas[i].numero===num)return facturas[i];return null;}
 function facturaPorId(id){for(var i=0;i<facturas.length;i++)if(facturas[i].id===id)return facturas[i];return null;}
 function facturaMensualDe(clienteId,ym){for(var i=0;i<facturasMensuales.length;i++){if(facturasMensuales[i].clientId===clienteId&&facturasMensuales[i].ym===ym)return facturasMensuales[i].numero;}return null;}
-function facturaMensualPorId(id){for(var i=0;i<facturasMensuales.length;i++)if(facturasMensuales[i].id===id)return facturasMensuales[i];return null;}
 function albaranPorId(id){for(var i=0;i<albaranes.length;i++)if(albaranes[i].id===id)return albaranes[i];return null;}
 function albaranesDeServicio(sid){return albaranes.filter(function(a){return a.servicioId===sid;});}
 function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L31';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L30-FINAL';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -720,68 +657,38 @@ function vibrar(){try{if(navigator.vibrate)navigator.vibrate([300,100,300,100,30
 document.addEventListener('pointerdown',function(){if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();},{once:true});
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}});
 function nextNumeroFactura(cb){db.ref('config/contadorFactura').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){if(err||!committed){showToast('❌ Error al numerar factura','error');return;}var n=snap.val();cb('F-'+new Date().getFullYear()+'-'+String(n).padStart(4,'0'));});}
-function diferenciaLine(s){if(s.pesoCliente==null)return'';var dv=(s.kg!=null?Math.round((s.kg-s.pesoCliente)*100)/100:null);return '<div class="otime" style="margin-top:4px;">⚖️ Peso cliente '+s.pesoCliente+' kg'+(s.kg!=null?' · Lavandería '+s.kg+' kg':'')+(dv!=null?' · <span style="font-weight:700;color:'+(dv!==0?'var(--red)':'var(--green)')+';">Dif. '+dv+' kg</span>':'')+'</div>';}
 
-// ===== FECHA RECOGIDA CON CASCADA (reutilizable) =====
+// ===== FUNCIONES AUXILIARES DE FECHAS =====
 function fechaRecogidaCascada(s){
-var tsRec=s.tsRecogido;
-if(!tsRec){
-for(var i=0;i<albaranes.length;i++){
-if(albaranes[i].servicioId===s.id && albaranes[i].tipo==='recogida' && albaranes[i].fecha){
-tsRec=albaranes[i].fecha;break;
+    var tsRec=s.tsRecogido;
+    if(!tsRec){
+        for(var i=0;i<albaranes.length;i++){
+            if(albaranes[i].servicioId===s.id && albaranes[i].tipo==='recogida' && albaranes[i].fecha){
+                tsRec=albaranes[i].fecha; break;
+            }
+        }
+    }
+    if(!tsRec && s.tsPesado) tsRec=s.tsPesado;
+    if(!tsRec && s.fechaRecogida){
+        var p=String(s.fechaRecogida).split('-');
+        if(p.length===3) tsRec=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();
+    }
+    return tsRec;
 }
-}
-}
-if(!tsRec&&s.tsPesado)tsRec=s.tsPesado;
-if(!tsRec&&s.fechaRecogida){
-var p=String(s.fechaRecogida).split('-');
-if(p.length===3)tsRec=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();
-}
-return tsRec;
+function fechaRecogidaCorta(servicioId){
+    var s=servicioPorId(servicioId);
+    if(!s) return '—';
+    var tsRec=fechaRecogidaCascada(s);
+    return tsRec ? fdtShort(tsRec) : '—';
 }
 
-function buildTabBar(){
-var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';
-var tabs;
-if(role==='admin'){tabs=['inicio','servicios','albaranes','clientes','contabilidad','ajustes'];}
-else if(role==='gerencia'){tabs=['inicio','servicios','clientes','ajustes'];}
-else{tabs=['inicio','servicios'];}
-var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',albaranes:'📄 Albaranes',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};
-tabs.forEach(function(t){
-var b=document.createElement('button');
-b.className='tabbtn'+(t===currentTab?' active':'');
-b.textContent=labels[t];
-b.onclick=function(){showTab(t);};
-bar.appendChild(b);
-});
-}
-function showTab(t){
-currentTab=t;
-['inicio','servicios','albaranes','clientes','contabilidad','ajustes'].forEach(function(p){
-var el=document.getElementById('pane-'+p);
-if(el)el.classList.toggle('hidden',p!==t);
-});
-var ia=document.getElementById('inicioAdminWrap');var isf=document.getElementById('inicioStaffWrap');
-if(t==='inicio'){
-if(esAdminOGerencia()){ia.classList.remove('hidden');isf.classList.add('hidden');}
-else{ia.classList.add('hidden');isf.classList.remove('hidden');}
-}
-buildTabBar();
-}
+function diferenciaLine(s){if(s.pesoCliente==null)return'';var dv=(s.kg!=null?Math.round((s.kg-s.pesoCliente)*100)/100:null);return '<div class="otime" style="margin-top:4px;">⚖️ Peso cliente '+s.pesoCliente+' kg'+(s.kg!=null?' · Lavandería '+s.kg+' kg':'')+(dv!=null?' · <span style="font-weight:700;color:'+(dv!==0?'var(--red)':'var(--green)')+';">Dif. '+dv+' kg</span>':'')+'</div>';}
+function buildTabBar(){var bar=document.getElementById('tabBar');if(!bar)return;bar.innerHTML='';var tabs;if(role==='admin'){tabs=['inicio','servicios','albaranes','clientes','contabilidad','ajustes'];}else if(role==='gerencia'){tabs=['inicio','servicios','clientes','ajustes'];}else{tabs=['inicio','servicios'];}var labels={inicio:'🏠 Inicio',servicios:'🧺 Servicios',albaranes:'📄 Albaranes',clientes:'🏨 Clientes',contabilidad:'📊 Contabilidad',ajustes:'⚙️ Ajustes'};tabs.forEach(function(t){var b=document.createElement('button');b.className='tabbtn'+(t===currentTab?' active':'');b.textContent=labels[t];b.onclick=function(){showTab(t);};bar.appendChild(b);});}
+function showTab(t){currentTab=t;['inicio','servicios','albaranes','clientes','contabilidad','ajustes'].forEach(function(p){var el=document.getElementById('pane-'+p);if(el)el.classList.toggle('hidden',p!==t);});var ia=document.getElementById('inicioAdminWrap');var isf=document.getElementById('inicioStaffWrap');if(t==='inicio'){if(esAdminOGerencia()){ia.classList.remove('hidden');isf.classList.add('hidden');}else{ia.classList.add('hidden');isf.classList.remove('hidden');}}buildTabBar();}
 function quickPedido(){var sel=document.getElementById('quickCliente');var cid=sel?sel.value:'';if(!cid){showToast('⚠️ Elige un cliente','error');return;}abrirRecogidaModal(cid);}
-function showOverlay(){if(!overlayQueue.length)return;
-document.getElementById('otitle').textContent=overlayQueue.length>1?'🔔 AVISOS':'🔔 NUEVA SOLICITUD';
-document.getElementById('obody').innerHTML=overlayQueue.map(function(i){return'<div class="oorder"><div class="om">🏨 '+esc(i.servicio.clienteNombre||'S/C')+'</div><div class="oi">'+escL(i.servicio.nota||'Sin nota')+'</div><div class="ot">'+(i.servicio.fechaRecogida?('📅 '+fmtFecha(i.servicio.fechaRecogida)+(i.servicio.franjaDesde?' '+i.servicio.franjaDesde+'–'+(i.servicio.franjaHasta||''):'')):ftime(i.servicio.createdAtLocal))+'</div></div>';}).join('');
-var c=document.getElementById('ocount');if(overlayQueue.length>1){c.textContent=overlayQueue.length+' avisos';c.classList.remove('hidden');}else c.classList.add('hidden');
-document.getElementById('overlay').classList.remove('hidden');beep();vibrar();}
+function showOverlay(){if(!overlayQueue.length)return;document.getElementById('otitle').textContent=overlayQueue.length>1?'🔔 AVISOS':'🔔 NUEVA SOLICITUD';document.getElementById('obody').innerHTML=overlayQueue.map(function(i){return'<div class="oorder"><div class="om">🏨 '+esc(i.servicio.clienteNombre||'S/C')+'</div><div class="oi">'+escL(i.servicio.nota||'Sin nota')+'</div><div class="ot">'+(i.servicio.fechaRecogida?('📅 '+fmtFecha(i.servicio.fechaRecogida)+(i.servicio.franjaDesde?' '+i.servicio.franjaDesde+'–'+(i.servicio.franjaHasta||''):'')):ftime(i.servicio.createdAtLocal))+'</div></div>';}).join('');var c=document.getElementById('ocount');if(overlayQueue.length>1){c.textContent=overlayQueue.length+' avisos';c.classList.remove('hidden');}else c.classList.add('hidden');document.getElementById('overlay').classList.remove('hidden');beep();vibrar();}
 function cerrarOverlay(){overlayQueue=[];document.getElementById('overlay').classList.add('hidden');try{if(navigator.vibrate)navigator.vibrate(0);}catch(e){}}
-function detectChanges(){if(!isStaff())return;
-servicios.forEach(function(s){var prev=knownState[s.id];
-if(prev===undefined){if(initialLoaded)overlayQueue.push({tipo:'NUEVO',servicio:s});knownState[s.id]=s.estado;}
-else if(prev!==s.estado){knownState[s.id]=s.estado;}});
-var idsActuales={};servicios.forEach(function(s){idsActuales[s.id]=1;});
-Object.keys(knownState).forEach(function(k){if(!idsActuales[k])delete knownState[k];});
-initialLoaded=true;if(overlayQueue.length)showOverlay();}
+function detectChanges(){if(!isStaff())return;servicios.forEach(function(s){var prev=knownState[s.id];if(prev===undefined){if(initialLoaded)overlayQueue.push({tipo:'NUEVO',servicio:s});knownState[s.id]=s.estado;}else if(prev!==s.estado){knownState[s.id]=s.estado;}});var idsActuales={};servicios.forEach(function(s){idsActuales[s.id]=1;});Object.keys(knownState).forEach(function(k){if(!idsActuales[k])delete knownState[k];});initialLoaded=true;if(overlayQueue.length)showOverlay();}
 function goView(v){location.href=location.pathname+'?vista='+v;}
 function salir(){if(role==='cliente'){return;}sessionStorage.removeItem('lav_auth');sessionStorage.removeItem('lav_user');localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
 function cerrarSesionCliente(){localStorage.removeItem(KEY_CLI);localStorage.removeItem(KEY_ROLE);location.href=location.pathname;}
@@ -789,28 +696,24 @@ function toggleHistorial(){var p=document.getElementById('cartaPanel');if(p)p.cl
 function mostrarLogin(){document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';document.getElementById('loginErr').textContent='';document.getElementById('loginModal').classList.remove('hidden');document.getElementById('loginUser').focus();}
 function cerrarLogin(){document.getElementById('loginModal').classList.add('hidden');}
 function inicializarUsuarios(cb){Promise.all([hashPassword('admin123'),hashPassword('gerencia123')]).then(function(hs){var updates={};updates['admin']={passwordHash:hs[0],rol:'admin'};updates['gerencia']={passwordHash:hs[1],rol:'gerencia'};db.ref('config/usuarios').update(updates).then(function(){if(cb)cb();});});}
-function intentarLogin(){var u=document.getElementById('loginUser').value.trim().toLowerCase();var p=document.getElementById('loginPass').value.trim();var e=document.getElementById('loginErr');if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;
-db.ref('config/usuarios').once('value').then(function(s){var usuarios=s.val();if(!usuarios||Object.keys(usuarios).length===0){inicializarUsuarios(function(){db.ref('config/usuarios/'+u).once('value').then(function(su){var user=su.val();if(!user){e.textContent='Usuario no encontrado.';return;}verificarYEntrar(u,p,user,e);});});return;}var user=usuarios[u];if(!user){e.textContent='Usuario no encontrado.';return;}verificarYEntrar(u,p,user,e);});}
+function intentarLogin(){var u=document.getElementById('loginUser').value.trim().toLowerCase();var p=document.getElementById('loginPass').value.trim();var e=document.getElementById('loginErr');if(!u||!p){e.textContent='Introduce usuario y contraseña.';return;}if(!requireFB())return;db.ref('config/usuarios').once('value').then(function(s){var usuarios=s.val();if(!usuarios||Object.keys(usuarios).length===0){inicializarUsuarios(function(){db.ref('config/usuarios/'+u).once('value').then(function(su){var user=su.val();if(!user){e.textContent='Usuario no encontrado.';return;}verificarYEntrar(u,p,user,e);});});return;}var user=usuarios[u];if(!user){e.textContent='Usuario no encontrado.';return;}verificarYEntrar(u,p,user,e);});}
 function verificarYEntrar(u,p,user,e){hashPassword(p).then(function(hash){if(hash===user.passwordHash){loginExito(u,user);return;}var legacy=legacyHash(p);if(user.passwordHash===legacy){db.ref('config/usuarios/'+u).update({passwordHash:hash}).then(function(){showToast('🔐 Contraseña migrada','success');loginExito(u,user);});return;}e.textContent='Contraseña incorrecta.';});}
 function loginExito(username,user){var rol=user.rol;sessionStorage.setItem('lav_auth',rol);sessionStorage.setItem('lav_user',username);localStorage.setItem(KEY_ROLE,rol);cerrarLogin();location.href=location.pathname+'?vista='+rol;}
-function renderUsuariosList(usuarios){var b=document.getElementById('usuariosList');if(!b)return;usuarios=usuarios||{};var keys=Object.keys(usuarios);var adminCount=keys.filter(function(k){return usuarios[k].rol==='admin';}).length;if(!keys.length){b.innerHTML='<div class="empty">No hay usuarios.</div>';return;}
-b.innerHTML=keys.map(function(k){var u=usuarios[k];var rolLabel=u.rol==='admin'?'👔 Admin':'💼 Gerencia';var esUltimoAdmin=(u.rol==='admin'&&adminCount<=1);var deleteBtn=esUltimoAdmin?'':'<button class="btn btn-red btn-sm" onclick="borrarUsuario(\''+esc(k)+'\')">🗑️</button>';return '<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(k)+'</b> <span class="otime">· '+rolLabel+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="cambiarPassUsuario(\''+esc(k)+'\')">🔑 Contraseña</button>'+deleteBtn+'</div></div>';}).join('');}
+function renderUsuariosList(usuarios){var b=document.getElementById('usuariosList');if(!b)return;usuarios=usuarios||{};var keys=Object.keys(usuarios);var adminCount=keys.filter(function(k){return usuarios[k].rol==='admin';}).length;if(!keys.length){b.innerHTML='<div class="empty">No hay usuarios.</div>';return;}b.innerHTML=keys.map(function(k){var u=usuarios[k];var rolLabel=u.rol==='admin'?'👔 Admin':'💼 Gerencia';var esUltimoAdmin=(u.rol==='admin'&&adminCount<=1);var deleteBtn=esUltimoAdmin?'':'<button class="btn btn-red btn-sm" onclick="borrarUsuario(\''+esc(k)+'\')">🗑️</button>';return '<div class="alertrow" style="border-left-color:var(--blue);flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(k)+'</b> <span class="otime">· '+rolLabel+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="cambiarPassUsuario(\''+esc(k)+'\')">🔑 Contraseña</button>'+deleteBtn+'</div></div>';}).join('');}
 function crearUsuario(){if(!requireFB())return;var u=document.getElementById('nuevoUsuario').value.trim().toLowerCase();var p=document.getElementById('nuevaPass').value;var r=document.getElementById('nuevoRol').value;if(!u||!p){showToast('⚠️ Usuario y contraseña obligatorios','error');return;}if(!/^[a-z0-9_]+$/.test(u)){showToast('⚠️ Usuario: solo letras/números, sin espacios','error');return;}if(p.length<4){showToast('⚠️ Contraseña mín 4 caracteres','error');return;}db.ref('config/usuarios/'+u).once('value').then(function(s){if(s.val()){showToast('⚠️ Ese usuario ya existe','error');return;}hashPassword(p).then(function(hash){db.ref('config/usuarios/'+u).set({passwordHash:hash,rol:r}).then(function(){showToast('✅ Usuario creado','success');document.getElementById('nuevoUsuario').value='';document.getElementById('nuevaPass').value='';});});});}
 function cambiarPassUsuario(k){if(!requireFB())return;var n=prompt('Nueva contraseña para "'+k+'" (mín 4):');if(!n)return;if(n.length<4){showToast('⚠️ Contraseña muy corta','error');return;}hashPassword(n).then(function(hash){db.ref('config/usuarios/'+k).update({passwordHash:hash}).then(function(){showToast('✅ Contraseña actualizada','success');});});}
 function borrarUsuario(k){if(!requireFB())return;if(!confirm('¿Borrar el usuario "'+k+'"?'))return;db.ref('config/usuarios/'+k).remove().then(function(){showToast('✅ Usuario borrado','success');});}
 function cambiarMiPass(){if(!requireFB())return;var username=sessionStorage.getItem('lav_user');if(!username){showToast('⚠️ No se pudo identificar el usuario actual','error');return;}var actual=prompt('Contraseña actual:');if(actual===null)return;db.ref('config/usuarios/'+username).once('value').then(function(s){var user=s.val();if(!user){showToast('❌ Usuario no encontrado','error');return;}hashPassword(actual).then(function(hashActual){var ok=(hashActual===user.passwordHash)||(legacyHash(actual)===user.passwordHash);if(!ok){showToast('❌ Contraseña actual incorrecta','error');return;}var nueva=prompt('Nueva contraseña (mín 4):');if(nueva===null)return;if(nueva.length<4){showToast('⚠️ Contraseña muy corta','error');return;}hashPassword(nueva).then(function(hashNueva){db.ref('config/usuarios/'+username).update({passwordHash:hashNueva}).then(function(){showToast('✅ Contraseña actualizada','success');});});});});}
 function renderEmpresa(){var a=document.getElementById('empNombre');if(!a)return;a.value=empresa.nombre||'';document.getElementById('empNif').value=empresa.nif||'';document.getElementById('empDireccion').value=empresa.direccion||'';document.getElementById('empCuenta').value=empresa.cuenta||'';applyBrand();}
 function saveEmpresa(){if(!requireFB())return;var data={nombre:document.getElementById('empNombre').value.trim(),nif:document.getElementById('empNif').value.trim(),direccion:document.getElementById('empDireccion').value.trim(),cuenta:document.getElementById('empCuenta').value.trim()};db.ref('config/empresa').set(data).then(function(){showToast('✅ Datos de empresa guardados','success');applyBrand();});}
-function renderResumen(){var box=document.getElementById('resumenStats');if(!box)return;var now=new Date();var ym=now.getFullYear()+'-'+pad2(now.getMonth()+1);var yr=String(now.getFullYear());var activos=clientes.filter(function(c){return c.activo!==false;}).length;var kgMes=0,kgYear=0;servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&s.tsPesado){var d=new Date(s.tsPesado);var sym=d.getFullYear()+'-'+pad2(d.getMonth()+1);var sy=String(d.getFullYear());var k=Number(s.kg)||0;if(sym===ym)kgMes+=k;if(sy===yr)kgYear+=k;}});
-if(esGerencia()){box.innerHTML='<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div><div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div><div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>';}
-else{var facMes=0,facYear=0;facturas.forEach(function(f){var t=Number(f.total)||0;var fd=f.fecha||'';if(fd.indexOf(ym)===0)facMes+=t;if(fd.indexOf(yr)===0)facYear+=t;});box.innerHTML='<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div><div class="stat"><b>'+fp(facMes)+'</b><span>Facturado mes</span></div><div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div><div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div><div class="stat"><b>'+fp(facYear)+'</b><span>Facturado año</span></div>';}}
+function renderResumen(){var box=document.getElementById('resumenStats');if(!box)return;var now=new Date();var ym=now.getFullYear()+'-'+pad2(now.getMonth()+1);var yr=String(now.getFullYear());var activos=clientes.filter(function(c){return c.activo!==false;}).length;var kgMes=0,kgYear=0;servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&s.tsPesado){var d=new Date(s.tsPesado);var sym=d.getFullYear()+'-'+pad2(d.getMonth()+1);var sy=String(d.getFullYear());var k=Number(s.kg)||0;if(sym===ym)kgMes+=k;if(sy===yr)kgYear+=k;}});if(esGerencia()){box.innerHTML='<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div><div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div><div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div>';}else{var facMes=0,facYear=0;facturas.forEach(function(f){var t=Number(f.total)||0;var fd=f.fecha||'';if(fd.indexOf(ym)===0)facMes+=t;if(fd.indexOf(yr)===0)facYear+=t;});box.innerHTML='<div class="stat"><b>'+activos+'</b><span>Clientes activos</span></div><div class="stat"><b>'+fp(facMes)+'</b><span>Facturado mes</span></div><div class="stat"><b>'+kgMes.toFixed(1)+' kg</b><span>Kilos mes</span></div><div class="stat"><b>'+kgYear.toFixed(1)+' kg</b><span>Kilos año</span></div><div class="stat"><b>'+fp(facYear)+'</b><span>Facturado año</span></div>';}}
 function renderActividad(){var box=document.getElementById('actividadStats');if(!box)return;var sol=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;var rec=servicios.filter(function(s){return s.estado==='RECOGIDO';}).length;var pes=servicios.filter(function(s){return s.estado==='PESADO';}).length;var ent=servicios.filter(function(s){return s.estado==='ENTREGADO';}).length;box.innerHTML='<div class="stat"><b>'+sol+'</b><span>Solicitudes</span></div><div class="stat"><b>'+rec+'</b><span>Recogidos</span></div><div class="stat"><b>'+pes+'</b><span>Pesados</span></div><div class="stat"><b>'+ent+'</b><span>Entregados</span></div>';}
 function renderServiciosStats(){var box=document.getElementById('serviciosStats');if(!box)return;var sol=servicios.filter(function(s){return s.estado==='SOLICITADO';}).length;var rec=servicios.filter(function(s){return s.estado==='RECOGIDO';}).length;var pes=servicios.filter(function(s){return s.estado==='PESADO';}).length;var ent=servicios.filter(function(s){return s.estado==='ENTREGADO';}).length;box.innerHTML='<div class="stat"><b>'+sol+'</b><span>Solicitudes</span></div><div class="stat"><b>'+rec+'</b><span>Recogidos</span></div><div class="stat"><b>'+pes+'</b><span>Pesados</span></div><div class="stat"><b>'+ent+'</b><span>Entregados</span></div>';}
 function renderQuickClientes(){var s=document.getElementById('quickCliente');if(!s)return;var q=norm(quickFiltroTexto);var list=clientes.slice();if(q){list=list.filter(function(c){var hay=norm(c.nombre||'')+' '+norm(c.nombreComercial||'');return hay.indexOf(q)!==-1;});}var cur=s.value;if(q){if(!list.length){s.innerHTML='<option value="">— Sin coincidencias —</option>';return;}s.innerHTML=list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(cur&&list.some(function(c){return c.id===cur;}))s.value=cur;else s.value=list[0].id;}else{s.innerHTML='<option value="">— Elegir cliente —</option>'+list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(cur&&list.some(function(c){return c.id===cur;}))s.value=cur;}}
 function filtrarQuickCliente(v){quickFiltroTexto=(v||'').trim();renderQuickClientes();}
 function resetDatos(){if(!requireFB())return;if(!confirm('⚠️ Esto borrará servicios, facturas, facturas mensuales, albaranes y contadores.\nLos clientes, la empresa y los usuarios se CONSERVAN.\n¿Continuar?'))return;var tec=prompt('Escribe BORRAR para confirmar el reset:');if(tec!=='BORRAR'){showToast('❌ Reset cancelado','error');return;}var ops=['servicios','facturas','facturasMensuales','albaranes','syncProbe'].map(function(r){return db.ref(r).remove();});ops.push(db.ref('config/contadorFactura').remove());ops.push(db.ref('config/contadorFacturaMensual').remove());Promise.all(ops).then(function(){knownState={};initialLoaded=false;showToast('✅ Datos de prueba borrados','success');renderAll();}).catch(function(e){showToast('❌ Error en reset: '+e.message,'error');});}
 function resolveClient(){if(!clienteIdFijo)return;var c=clientById(clienteIdFijo);if(!c)return;clienteNombre=c.nombreComercial||c.nombre||'';var tag=document.getElementById('clienteTag'),txt=document.getElementById('clienteTagText');if(tag&&txt){tag.style.display='inline-flex';txt.textContent=clienteNombre;}}
-function applyRole(){var mp=document.getElementById('menuPanel'),shell=document.getElementById('staffShell'),cp=document.getElementById('clientPanel'),bs=document.getElementById('btnSalir'),rb=document.getElementById('roleBadge');mp.classList.add('hidden');shell.classList.add('hidden');cp.classList.add('hidden');bs.style.display='none';rb.textContent=role==='menu'?'-':role.toUpperCase();rb.className='role'+(role==='cliente'?' cliente':'');if(role==='menu'){mp.classList.remove('hidden');return;}if(role==='cliente'){cp.classList.remove('hidden');bs.style.display='none';return;}if((role==='admin'||role==='gerencia')&&sessionStorage.getItem('lav_auth')!==role){mostrarLogin();return;}bs.style.display='inline-flex';shell.classList.remove('hidden');var cardUsuarios=document.getElementById('cardUsuarios');if(cardUsuarios){if(role==='admin'){cardUsuarios.classList.remove('hidden');}else{cardUsuarios.classList.add('hidden');}}var cliBox=document.getElementById('servCliBox');var resCard=document.getElementById('servResumenCard');var gestionCard=document.getElementById('gestionPanelCard');if(cliBox){if(role==='admin'){cliBox.classList.remove('hidden');}else{cliBox.classList.add('hidden');}}if(resCard){if(role==='admin'){resCard.classList.remove('hidden');}else{resCard.classList.add('hidden');}}if(gestionCard){if(role==='admin'){gestionCard.classList.remove('hidden');}else{gestionCard.classList.add('hidden');}}buildTabBar();showTab('inicio');if(isStaff())renderServCliList();updateSyncInfo();}
+function applyRole(){var mp=document.getElementById('menuPanel'),shell=document.getElementById('staffShell'),cp=document.getElementById('clientPanel'),bs=document.getElementById('btnSalir'),rb=document.getElementById('roleBadge');mp.classList.add('hidden');shell.classList.add('hidden');cp.classList.add('hidden');bs.style.display='none';rb.textContent=role==='menu'?'-':role.toUpperCase();rb.className='role'+(role==='cliente'?' cliente':'');if(role==='menu'){mp.classList.remove('hidden');return;}if(role==='cliente'){cp.classList.remove('hidden');bs.style.display='none';return;}if((role==='admin'||role==='gerencia')&&sessionStorage.getItem('lav_auth')!==role){mostrarLogin();return;}bs.style.display='inline-flex';shell.classList.remove('hidden');var cardUsuarios=document.getElementById('cardUsuarios');if(cardUsuarios){if(role==='admin'){cardUsuarios.classList.remove('hidden');}else{cardUsuarios.classList.add('hidden');}}var cliBox=document.getElementById('servCliBox');var resCard=document.getElementById('servResumenCard');if(cliBox){if(role==='admin'){cliBox.classList.remove('hidden');}else{cliBox.classList.add('hidden');}}if(resCard){if(role==='admin'){resCard.classList.remove('hidden');}else{resCard.classList.add('hidden');}}buildTabBar();showTab('inicio');if(isStaff())renderServCliList();updateSyncInfo();}
 function renderAll(){if(isStaff()){detectChanges();renderStaffServicios();renderServiciosStats();}if(role==='admin'){renderResumen();renderQuickClientes();renderContab();renderFacturas();renderClientes();renderAdminFM();renderEmpresa();renderInformeClientes();renderPedidosClienteSelect();renderAlbaranesAdmin();}if(role==='gerencia'){renderResumen();renderQuickClientes();renderClientes();renderEmpresa();}if(role==='lavanderia'){renderActividad();}if(role==='cliente'){resolveClient();renderClientState();renderClientServicios();renderTotal();renderClientFacturas();renderClientAlbaranes();}updateSyncInfo();}
 function verMasServ(){limitServ+=20;renderStaffServicios();}
 function botonesPara(s){var b='';if(s.estado==='SOLICITADO'&&puedeCambiar('RECOGIDO'))b+='<button class="btn btn-gold btn-sm" onclick="pedirAccion(\''+s.id+'\',\'RECOGIDO\')">🚚 Recoger</button>';if(s.estado==='RECOGIDO'&&puedeCambiar('PESADO'))b+='<button class="btn btn-green btn-sm" onclick="abrirPesarModal(\''+s.id+'\')">⚖️ Pesar</button>';if(s.estado==='PESADO'&&puedeCambiar('ENTREGADO'))b+='<button class="btn btn-purple btn-sm" onclick="pedirAccion(\''+s.id+'\',\'ENTREGADO\')">📦 Entregar</button>';if(s.estado==='SOLICITADO'&&puedeCambiar('CANCELADO'))b+='<button class="btn btn-red btn-sm" onclick="cambiarEstado(\''+s.id+'\',\'CANCELADO\')">❌</button>';if(b==='')b='<span class="otime">🔒 Sin acciones</span>';return b;}
@@ -861,65 +764,95 @@ function cerrarQRModal(){document.getElementById('qrModal').classList.add('hidde
 function copiarQRModal(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(qrModalUrl).then(function(){showToast('✅ URL copiada','success');});}else{showToast(qrModalUrl);}}
 function verMasFac(){limitFac+=15;renderFacturas();}
 function renderContab(){var now=new Date(),hoy=localISO(now);var is=new Date(now);var ds=now.getDay()||7;is.setDate(now.getDate()-ds+1);var fS=localISO(is);var fM=now.getFullYear()+'-'+pad2(now.getMonth()+1);var T=0,D=0,S=0,M=0;facturas.forEach(function(f){var t=Number(f.total)||0;T+=t;if(f.fecha===hoy)D+=t;if(f.fecha>=fS)S+=t;if(f.fecha>=fM)M+=t;});var e1=document.getElementById('contDia'),e2=document.getElementById('contSem'),e3=document.getElementById('contMes'),e4=document.getElementById('contTot');if(e1)e1.textContent=fp(D);if(e2)e2.textContent=fp(S);if(e3)e3.textContent=fp(M);if(e4)e4.textContent=fp(T);}
-function renderFacturas(){var b=document.getElementById('facturasList');if(!b)return;if(!facturas.length){b.innerHTML='<div class="empty">Sin facturas</div>';return;}var sorted=facturas.slice().sort(function(a,b2){return(b2.timestamp||0)-(a.timestamp||0);});var shown=sorted.slice(0,limitFac);var html=shown.map(function(f){return'<div class="alertrow" style="border-left-color:var(--purple)"><div><b>'+esc(f.numero||'S/N')+'</b> · '+esc(f.clienteNombre||'')+'<div class="otime">'+esc(f.fecha||'')+' · '+f.kg+' kg'+(f.materialImporte?' · 🧵 +'+fp(f.materialImporte):'')+'</div></div><div><b>'+fp(f.total)+'</b></div></div>';}).join('');if(sorted.length>limitFac){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasFac()">Ver más ('+(sorted.length-limitFac)+' restantes)</button>';}b.innerHTML=html;}
+
+// ===== RENDER FACTURAS CON BOTONES DE EDICIÓN/ANULACIÓN =====
+function renderFacturas(){
+    var b=document.getElementById('facturasList');if(!b)return;
+    if(!facturas.length){b.innerHTML='<div class="empty">Sin facturas</div>';return;}
+    var sorted=facturas.slice().sort(function(a,b2){return(b2.timestamp||0)-(a.timestamp||0);});
+    var shown=sorted.slice(0,limitFac);
+    var html=shown.map(function(f){
+        var acciones = (role==='admin') ? '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="abrirFacturaEdit(\''+f.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="anularFactura(\''+f.id+'\')">🗑️</button></div>' : '';
+        return '<div class="alertrow" style="border-left-color:var(--purple)"><div style="flex:1;"><b>'+esc(f.numero||'S/N')+'</b> · '+esc(f.clienteNombre||'')+'<div class="otime">'+esc(f.fecha||'')+' · '+f.kg+' kg'+(f.materialImporte?' · 🧵 +'+fp(f.materialImporte):'')+'</div></div><div style="display:flex;align-items:center;gap:10px;"><b>'+fp(f.total)+'</b>'+acciones+'</div></div>';
+    }).join('');
+    if(sorted.length>limitFac){html+='<button class="btn btn-grey btn-block" style="margin-top:8px;" onclick="verMasFac()">Ver más ('+(sorted.length-limitFac)+' restantes)</button>';}
+    b.innerHTML=html;
+}
+
 function renderAdminFM(){var selC=document.getElementById('fmCliente'),selM=document.getElementById('fmMes'),selModo=document.getElementById('fmModo');if(!selC||!selM)return;var modo=selModo?selModo.value:'cliente';var lbl=document.getElementById('fmClienteLabel');var ind=document.getElementById('fmIndicador');var curC=selC.value,curM=selM.value;if(modo==='nif'){if(lbl)lbl.textContent='NIF/CIF:';var nifs={};clientes.forEach(function(c){if(c.nif){nifs[c.nif]=1;}});var nifList=Object.keys(nifs).sort();selC.innerHTML=nifList.map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');if(!nifList.length)selC.innerHTML='<option value="">— Sin NIF registrados —</option>';if(curC&&nifs[curC])selC.value=curC;if(ind)ind.textContent='Modo: agrupando por NIF/CIF — se juntarán todos los clientes con el NIF elegido.';}else{if(lbl)lbl.textContent='Cliente:';selC.innerHTML=clientes.map(function(c){return'<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(curC&&clientes.some(function(c){return c.id===curC;}))selC.value=curC;if(ind)ind.textContent='Modo: factura individual por cliente.';}var set={};set[ymOf(Date.now())]=1;servicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)set[ymOf(s.tsPesado||s.createdAtLocal)]=1;});var months=Object.keys(set).sort().reverse();selM.innerHTML=months.map(function(m){return'<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');if(curM&&months.indexOf(curM)!==-1)selM.value=curM;}
 function adminGenerarFM(){var selModo=document.getElementById('fmModo');var modo=selModo?selModo.value:'cliente';var val=document.getElementById('fmCliente').value;var m=document.getElementById('fmMes').value;if(!val||!m){showToast('⚠️ Elige cliente/NIF y mes','error');return;}if(modo==='nif'){generarPDFPorNIF(val,m);}else{generarPDFMensual(val,m);}}
 function generarPDFPorNIF(nif,ym){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var clientsWithNif=clientes.filter(function(c){return c.nif===nif;});if(!clientsWithNif.length){showToast('⚠️ No hay clientes con ese NIF','error');return;}var clientIds={};clientsWithNif.forEach(function(c){clientIds[c.id]=c;});var lines=servicios.filter(function(s){return clientIds[s.clienteId]&&ymOf(s.tsPesado||s.createdAtLocal)===ym&&['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&(Number(s.total)||0)>0;}).sort(function(a,b){return(a.createdAtLocal||0)-(b.createdAtLocal||0);});if(!lines.length){showToast('⚠️ No hay lavados facturables en ese mes','error');return;}ensureFacturaMensualNIF(nif,ym,function(rec){buildPDFNIF(nif,ym,lines,clientIds,rec);});}
 function ensureFacturaMensualNIF(nif,ym,cb){var safeNif=String(nif).replace(/[^a-zA-Z0-9]/g,'_');var key='NIF_'+safeNif+'_'+ym;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec);return;}db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}var n=snap.val();var numero=ym.replace('-','')+'-'+String(n).padStart(4,'0');var newRec={numero:numero,nif:nif,ym:ym,createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec);});});});}
+
+// ===== FACTURAS PDF CON 3 COLUMNAS DE FECHA =====
 function buildPDFNIF(nif,ym,lines,clientIds,rec){
-var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
-doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);
-doc.setFontSize(9);doc.text('NIF: '+(empresa.nif||''),14,24);doc.text(empresa.direccion||'',14,29);
-doc.setFontSize(11);doc.text('Factura mensual agrupada (por NIF/CIF)',14,38);
-doc.setFontSize(10);doc.text('Nº factura: '+rec.numero,14,46);doc.text('Periodo: '+monthLabel(ym),14,52);doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);doc.text('NIF/CIF cliente: '+nif,14,66);
-var nombresComerciales={};lines.forEach(function(s){var c=clientIds[s.clienteId];if(c){nombresComerciales[c.nombreComercial||c.nombre]=1;}});
-doc.text('Negocios: '+Object.keys(nombresComerciales).join(', '),14,72);
-var body=lines.map(function(s){var c=clientIds[s.clienteId];var nombreCli=c?(c.nombreComercial||c.nombre):'';var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);var fRec=fechaRecogidaCascada(s);return[nombreCli,fdtShort(fRec),fdtShort(s.tsPesado),fdtShort(s.tsEntregado),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2),notaPlana(s)];});
-var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
-var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
-doc.autoTable({startY:78,
-head:[['Cliente','F. Recogida','F. Pesaje','F. Entrega','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
-body:body,
-foot:[['TOTALES','','','','',sumKg.toFixed(1),'','',sumBase.toFixed(2),'']],
-styles:{fontSize:7},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},columnStyles:{9:{cellWidth:28}}});
-var y=doc.lastAutoTable.finalY+8;
-var agg={};lines.forEach(function(s){(s.prendas||[]).forEach(function(p){if(!agg[p.tipo])agg[p.tipo]={qty:0,precio:p.precio,total:0};agg[p.tipo].qty+=p.qty;agg[p.tipo].total+=p.total;agg[p.tipo].precio=p.precio;});});
-var aggKeys=Object.keys(agg);
-if(aggKeys.length){doc.setFontSize(9);doc.text('Material opcional (prendas):',14,y);y+=5;aggKeys.forEach(function(k){doc.text('   '+k+' ×'+agg[k].qty+' @ '+agg[k].precio.toFixed(2)+' = '+agg[k].total.toFixed(2)+' €',14,y);y+=5;});y+=2;}
-doc.setFontSize(10);doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,y);y+=6;doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;
-doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=8;
-doc.setFontSize(8);doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
-doc.save('Factura_'+rec.numero+'.pdf');showToast('✅ PDF agrupado descargado: '+rec.numero,'success');}
+    var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
+    doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);
+    doc.setFontSize(9);doc.text('NIF: '+(empresa.nif||''),14,24);doc.text(empresa.direccion||'',14,29);
+    doc.setFontSize(11);doc.text('Factura mensual agrupada (por NIF/CIF)',14,38);
+    doc.setFontSize(10);doc.text('Nº factura: '+rec.numero,14,46);doc.text('Periodo: '+monthLabel(ym),14,52);doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);doc.text('NIF/CIF cliente: '+nif,14,66);
+    var nombresComerciales={};lines.forEach(function(s){var c=clientIds[s.clienteId];if(c){nombresComerciales[c.nombreComercial||c.nombre]=1;}});
+    doc.text('Negocios: '+Object.keys(nombresComerciales).join(', '),14,72);
+    var body=lines.map(function(s){
+        var c=clientIds[s.clienteId];var nombreCli=c?(c.nombreComercial||c.nombre):'';
+        var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
+        var fRec=fechaRecogidaCascada(s);
+        return [nombreCli, fdtShort(fRec), fdtShort(s.tsPesado), fdtShort(s.tsEntregado), (s.kg||0), (Number(s.precioKilo)||0).toFixed(2), base.toFixed(2), (Number(s.importeMaterial)||0).toFixed(2), (Number(s.total)||0).toFixed(2), notaPlana(s)];
+    });
+    var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
+    var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
+    doc.autoTable({startY:78,
+    head:[['Cliente','F. Recogida','F. Pesaje','F. Entrega','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
+    body:body,
+    foot:[['TOTALES','','','',sumKg.toFixed(1),'','','',sumBase.toFixed(2),'']],
+    styles:{fontSize:7},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},columnStyles:{9:{cellWidth:28}}});
+    var y=doc.lastAutoTable.finalY+8;
+    var agg={};lines.forEach(function(s){(s.prendas||[]).forEach(function(p){if(!agg[p.tipo])agg[p.tipo]={qty:0,precio:p.precio,total:0};agg[p.tipo].qty+=p.qty;agg[p.tipo].total+=p.total;agg[p.tipo].precio=p.precio;});});
+    var aggKeys=Object.keys(agg);
+    if(aggKeys.length){doc.setFontSize(9);doc.text('Material opcional (prendas):',14,y);y+=5;aggKeys.forEach(function(k){doc.text('   '+k+' ×'+agg[k].qty+' @ '+agg[k].precio.toFixed(2)+' = '+agg[k].total.toFixed(2)+' €',14,y);y+=5;});y+=2;}
+    doc.setFontSize(10);doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,y);y+=6;doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;
+    doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=8;
+    doc.setFontSize(8);doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
+    doc.save('Factura_'+rec.numero+'.pdf');showToast('✅ PDF agrupado descargado: '+rec.numero,'success');
+}
+
 function ensureFacturaMensual(clientId,ym,cb){var key=clientId+'_'+ym;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec);return;}db.ref('config/contadorFacturaMensual').transaction(function(cur){return(cur||0)+1;},function(err,committed,snap){if(err||!committed){showToast('❌ Error numerar factura mensual','error');return;}var n=snap.val();var numero=ym.replace('-','')+'-'+String(n).padStart(4,'0');var newRec={numero:numero,clientId:clientId,ym:ym,createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec);});});});}
 function generarPDFMensual(clientId,ym){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var c=clientById(clientId);if(!c){showToast('⚠️ Cliente no encontrado','error');return;}var lines=billableLines(clientId,ym);if(!lines.length){showToast('⚠️ No hay lavados facturables en ese mes','error');return;}ensureFacturaMensual(clientId,ym,function(rec){buildPDF(c,ym,lines,rec);});}
 function billableLines(clientId,ym){return servicios.filter(function(s){return s.clienteId===clientId&&ymOf(s.tsPesado||s.createdAtLocal)===ym&&['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&(Number(s.total)||0)>0;}).sort(function(a,b){return(a.createdAtLocal||0)-(b.createdAtLocal||0);});}
+
 function buildPDF(c,ym,lines,rec){
-var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
-doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);
-doc.setFontSize(9);doc.text('NIF: '+(empresa.nif||''),14,24);doc.text(empresa.direccion||'',14,29);
-doc.setFontSize(11);doc.text('Factura mensual de servicios',14,38);
-doc.setFontSize(10);doc.text('Nº factura: '+rec.numero,14,46);doc.text('Periodo: '+monthLabel(ym),14,52);doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);doc.text('Cliente: '+(c.nombre||''),14,66);
-var cy=72;
-if(c.nombreComercial){doc.text('Nombre comercial: '+c.nombreComercial,14,cy);cy+=6;}
-if(c.nif){doc.text('NIF/CIF: '+c.nif,14,cy);cy+=6;}
-if(c.direccion){doc.text('Dirección: '+c.direccion,14,cy);cy+=6;}
-if(c.contacto){doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,cy);cy+=6;}
-var body=lines.map(function(s){var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);var fRec=fechaRecogidaCascada(s);return[fdtShort(fRec),fdtShort(s.tsPesado),fdtShort(s.tsEntregado),(s.facturaId||''),(s.kg||0),(Number(s.precioKilo)||0).toFixed(2),base.toFixed(2),(Number(s.importeMaterial)||0).toFixed(2),(Number(s.total)||0).toFixed(2),notaPlana(s)];});
-var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
-var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
-doc.autoTable({startY:cy+6,
-head:[['F. Recogida','F. Pesaje','F. Entrega','Nº serv.','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
-body:body,
-foot:[['TOTALES','','','','',sumKg.toFixed(1),'','',sumBase.toFixed(2),'']],
-styles:{fontSize:7},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},columnStyles:{9:{cellWidth:28}}});
-var y=doc.lastAutoTable.finalY+8;
-var agg={};lines.forEach(function(s){(s.prendas||[]).forEach(function(p){if(!agg[p.tipo])agg[p.tipo]={qty:0,precio:p.precio,total:0};agg[p.tipo].qty+=p.qty;agg[p.tipo].total+=p.total;agg[p.tipo].precio=p.precio;});});
-var aggKeys=Object.keys(agg);
-if(aggKeys.length){doc.setFontSize(9);doc.text('Material opcional (prendas):',14,y);y+=5;aggKeys.forEach(function(k){doc.text('   '+k+' ×'+agg[k].qty+' @ '+agg[k].precio.toFixed(2)+' = '+agg[k].total.toFixed(2)+' €',14,y);y+=5;});y+=2;}
-doc.setFontSize(10);doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,y);y+=6;doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;
-doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=8;
-doc.setFontSize(8);doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
-doc.save('Factura_'+rec.numero+'.pdf');showToast('✅ PDF descargado: '+rec.numero,'success');}
+    var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
+    doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);
+    doc.setFontSize(9);doc.text('NIF: '+(empresa.nif||''),14,24);doc.text(empresa.direccion||'',14,29);
+    doc.setFontSize(11);doc.text('Factura mensual de servicios',14,38);
+    doc.setFontSize(10);doc.text('Nº factura: '+rec.numero,14,46);doc.text('Periodo: '+monthLabel(ym),14,52);doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);doc.text('Cliente: '+(c.nombre||''),14,66);
+    var cy=72;
+    if(c.nombreComercial){doc.text('Nombre comercial: '+c.nombreComercial,14,cy);cy+=6;}
+    if(c.nif){doc.text('NIF/CIF: '+c.nif,14,cy);cy+=6;}
+    if(c.direccion){doc.text('Dirección: '+c.direccion,14,cy);cy+=6;}
+    if(c.contacto){doc.text('Contacto: '+c.contacto+(c.telefono?' · '+c.telefono:''),14,cy);cy+=6;}
+    var body=lines.map(function(s){
+        var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
+        var fRec=fechaRecogidaCascada(s);
+        return [fdtShort(fRec), fdtShort(s.tsPesado), fdtShort(s.tsEntregado), (s.facturaId||''), (s.kg||0), (Number(s.precioKilo)||0).toFixed(2), base.toFixed(2), (Number(s.importeMaterial)||0).toFixed(2), (Number(s.total)||0).toFixed(2), notaPlana(s)];
+    });
+    var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
+    var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
+    doc.autoTable({startY:cy+6,
+    head:[['F. Recogida','F. Pesaje','F. Entrega','Nº serv.','Kg','€/Kg','Base €','Material €','Subtotal €','Notas']],
+    body:body,
+    foot:[['TOTALES','','','','',sumKg.toFixed(1),'','','',sumBase.toFixed(2),'']],
+    styles:{fontSize:7},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},columnStyles:{9:{cellWidth:28}}});
+    var y=doc.lastAutoTable.finalY+8;
+    var agg={};lines.forEach(function(s){(s.prendas||[]).forEach(function(p){if(!agg[p.tipo])agg[p.tipo]={qty:0,precio:p.precio,total:0};agg[p.tipo].qty+=p.qty;agg[p.tipo].total+=p.total;agg[p.tipo].precio=p.precio;});});
+    var aggKeys=Object.keys(agg);
+    if(aggKeys.length){doc.setFontSize(9);doc.text('Material opcional (prendas):',14,y);y+=5;aggKeys.forEach(function(k){doc.text('   '+k+' ×'+agg[k].qty+' @ '+agg[k].precio.toFixed(2)+' = '+agg[k].total.toFixed(2)+' €',14,y);y+=5;});y+=2;}
+    doc.setFontSize(10);doc.text('Base imponible: '+sumBase.toFixed(2)+' €',14,y);y+=6;doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;
+    doc.setFontSize(12);doc.text('TOTAL A PAGAR: '+total.toFixed(2)+' €',14,y);y+=8;
+    doc.setFontSize(8);doc.text('Cuenta bancaria: '+(empresa.cuenta||''),14,y);y+=5;doc.text('Documento generado automáticamente por '+(empresa.nombre||'')+'.',14,y);
+    doc.save('Factura_'+rec.numero+'.pdf');showToast('✅ PDF descargado: '+rec.numero,'success');
+}
+
 function renderInformeClientes(){var s=document.getElementById('infCliente');if(!s)return;var cur=s.value;s.innerHTML='<option value="todos">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(cur)s.value=cur;if(!s.value)s.value='todos';}
 function filtrarServiciosInforme(){var cid=document.getElementById('infCliente').value;var desde=document.getElementById('infDesde').value;var hasta=document.getElementById('infHasta').value;var list=servicios.slice();if(cid&&cid!=='todos'){list=list.filter(function(s){return s.clienteId===cid;});}if(desde){var dms=new Date(desde+'T00:00:00').getTime();list=list.filter(function(s){return (s.createdAtLocal||0)>=dms;});}if(hasta){var hms=new Date(hasta+'T23:59:59').getTime();list=list.filter(function(s){return (s.createdAtLocal||0)<=hms;});}list.sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});return list;}
 function verInforme(){var box=document.getElementById('informeResultados');if(!box)return;var list=filtrarServiciosInforme();if(!list.length){box.innerHTML='<div class="empty">No hay servicios en ese filtro.</div>';return;}box.innerHTML='<div class="otime" style="margin-bottom:8px;">'+list.length+' servicio(s)</div>'+list.map(function(s){var c=clientById(s.clienteId)||{};var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';var infoS=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;"><div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div><div class="oitems">'+escL(s.nota||'')+'</div>'+(infoS?'<div class="otime" style="margin-top:4px;">'+infoS+'</div>':'')+'<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span></div></div>';}).join('');}
@@ -932,21 +865,52 @@ function renderPeriodosCliente(){var sel=document.getElementById('pcPeriodo');if
 function filtrarPedidosCliente(){var cid=document.getElementById('pcCliente').value;var per=document.getElementById('pcPeriodo').value;var list=servicios.slice();if(cid!=='todos'){list=list.filter(function(s){return s.clienteId===cid;});}if(per!=='todos'){list=list.filter(function(s){return s.createdAtLocal&&ymOf(s.createdAtLocal)===per;});}list.sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});return list;}
 function verPedidosCliente(){var box=document.getElementById('pedidosClienteResultados');if(!box)return;var list=filtrarPedidosCliente();if(!list.length){box.innerHTML='<div class="empty">No hay pedidos en ese filtro.</div>';return;}box.innerHTML='<div class="otime" style="margin-bottom:8px;">'+list.length+' pedido(s)</div>'+list.map(function(s){var c=clientById(s.clienteId)||{};var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';var infoS=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.importeMaterial?' · 🧵 +'+fp(s.importeMaterial):'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');var prendasTxt=(s.prendas&&s.prendas.length)?('<div class="otime" style="margin-top:4px;">🧵 '+esc(s.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var weighed=['PESADO','ENTREGADO'].indexOf(s.estado)!==-1;var extra='';if(['RECOGIDO','PESADO','ENTREGADO'].indexOf(s.estado)!==-1){extra='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'+(esAdminOGerencia()?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')+(weighed?'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>':'')+(esAdminOGerencia()&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')+(esAdminOGerencia()&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')+'</div>';}return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;"><div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div><div class="oitems">'+escL(s.nota||'')+'</div>'+lineaRecogida(s)+diferenciaLine(s)+(infoS?'<div class="otime" style="margin-top:4px;">'+infoS+'</div>':'')+prendasTxt+extra+'<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div></div>';}).join('');}
 function exportarPedidosCliente(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}var list=filtrarPedidosCliente();if(!list.length){showToast('⚠️ No hay pedidos en ese filtro','error');return;}var data=buildServiciosRows(list);var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Pedidos');XLSX.writeFile(wb,'pedidos_cliente_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
-function fechaRecogidaInfo(servicioId){var albRec=null;for(var i=0;i<albaranes.length;i++){if(albaranes[i].servicioId===servicioId&&albaranes[i].tipo==='recogida'){albRec=albaranes[i];break;}}if(albRec&&albRec.fecha){return {texto:fdt(albRec.fecha)};}var s=servicioPorId(servicioId);if(s&&s.tsRecogido){return {texto:fdt(s.tsRecogido)};}if(s&&s.fechaRecogida){return {texto:fmtFecha(s.fechaRecogida)+' (programada)'};}return null;}
+
 function preguntarAlbaran(sid,tipo){if(confirm('¿Generar albarán de '+tipo+' con firma del cliente?')){abrirAlbaranModal(sid,tipo);}}
 function populateAlbPrendaSelect(){var s=document.getElementById('albPrenda');if(!s)return;s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
 function albPrendasPrecios(){if(!albCtx)return null;var s=servicioPorId(albCtx.servicioId);if(!s)return null;var c=clientById(s.clienteId);return (c&&c.preciosPrendas)||null;}
 function albAddPrenda(){if(!albCtx)return;var tipo=document.getElementById('albPrenda').value;var qty=parseInt(document.getElementById('albPrendaQty').value)||0;if(qty<=0){showToast('⚠️ Cantidad no válida','error');return;}var pp=albPrendasPrecios();var precio=pp?pp[tipo]:null;if(precio==null){showToast('⚠️ El cliente no tiene precio para "'+tipo+'". Ponlo en su ficha.','error');return;}albPrendas.push({tipo:tipo,qty:qty,precio:precio,total:Math.round(qty*precio*100)/100});renderAlbPrendas();}
 function albRemovePrenda(i){albPrendas.splice(i,1);renderAlbPrendas();}
 function renderAlbPrendas(){var b=document.getElementById('albPrendasList');if(!b)return;if(!albPrendas.length){b.innerHTML='<div class="otime">Sin materiales.</div>';return;}b.innerHTML=albPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="albRemovePrenda('+i+')">✕</button></span></div>';}).join('');}
-function abrirAlbaranModal(sid,tipo){var s=servicioPorId(sid);if(!s)return;var c=clientById(s.clienteId)||{};albCtx={servicioId:sid,tipo:tipo};document.getElementById('albTitle').textContent=tipo==='recogida'?'📄 Albarán de recogida':'📄 Albarán de entrega';var kg=tipo==='recogida'?((s.pesoCliente!=null)?s.pesoCliente:(s.kg||0)):(s.kg||0);var frLine='';if(tipo==='entrega'){var fr=fechaRecogidaInfo(sid);if(fr){frLine='<div><b>📅 Fecha de recogida:</b> '+esc(fr.texto)+'</div>';}}var html='<div><b>Cliente:</b> '+esc(c.nombreComercial||c.nombre||s.clienteNombre||'')+'</div>'+(c.nif?'<div><b>NIF/CIF:</b> '+esc(c.nif)+'</div>':'')+(c.contacto?'<div><b>Contacto:</b> '+esc(c.contacto)+'</div>':'')+(c.telefono?'<div><b>Teléfono:</b> '+esc(c.telefono)+'</div>':'')+(c.direccion?'<div><b>Dirección:</b> '+esc(c.direccion)+'</div>':'')+frLine+'<div><b>Kg:</b> '+kg+' kg</div>'+(tipo==='entrega'&&s.total?'<div><b>Total (IGIC incl.):</b> '+fp(s.total)+'</div>':'')+(s.nota?'<div><b>Nota del cliente:</b> '+esc(s.nota)+'</div>':'')+'<div><b>Fecha:</b> '+fdt(nowLocal())+'</div>';document.getElementById('albDatos').innerHTML=html;albPrendas=(s.prendas||[]).map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});populateAlbPrendaSelect();document.getElementById('albPrendaQty').value='1';renderAlbPrendas();limpiarFirma();document.getElementById('albaranModal').classList.remove('hidden');initFirmaCanvas();}
+
+// ===== ALBARÁN DE ENTREGA CON FECHA DE RECOGIDA CORTA =====
+function abrirAlbaranModal(sid,tipo){
+    var s=servicioPorId(sid);if(!s)return;
+    var c=clientById(s.clienteId)||{};
+    albCtx={servicioId:sid,tipo:tipo};
+    document.getElementById('albTitle').textContent=tipo==='recogida'?'📄 Albarán de recogida':'📄 Albarán de entrega';
+    var kg=tipo==='recogida'?((s.pesoCliente!=null)?s.pesoCliente:(s.kg||0)):(s.kg||0);
+    var frLine='';
+    if(tipo==='entrega'){
+        var frCorta=fechaRecogidaCorta(sid);
+        if(frCorta!=='—'){frLine='<div><b>📅 Fecha de recogida:</b> '+esc(frCorta)+'</div>';}
+    }
+    var html='<div><b>Cliente:</b> '+esc(c.nombreComercial||c.nombre||s.clienteNombre||'')+'</div>'
+    +(c.nif?'<div><b>NIF/CIF:</b> '+esc(c.nif)+'</div>':'')
+    +(c.contacto?'<div><b>Contacto:</b> '+esc(c.contacto)+'</div>':'')
+    +(c.telefono?'<div><b>Teléfono:</b> '+esc(c.telefono)+'</div>':'')
+    +(c.direccion?'<div><b>Dirección:</b> '+esc(c.direccion)+'</div>':'')
+    +frLine
+    +'<div><b>Kg:</b> '+kg+' kg</div>'
+    +(tipo==='entrega'&&s.total?'<div><b>Total (IGIC incl.):</b> '+fp(s.total)+'</div>':'')
+    +(s.nota?'<div><b>Nota del cliente:</b> '+esc(s.nota)+'</div>':'')
+    +'<div><b>Fecha:</b> '+fdt(nowLocal())+'</div>';
+    document.getElementById('albDatos').innerHTML=html;
+    albPrendas=(s.prendas||[]).map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});
+    populateAlbPrendaSelect();document.getElementById('albPrendaQty').value='1';renderAlbPrendas();limpiarFirma();
+    document.getElementById('albaranModal').classList.remove('hidden');initFirmaCanvas();
+}
 function cerrarAlbaranModal(){albCtx=null;albPrendas=[];document.getElementById('albaranModal').classList.add('hidden');}
 function initFirmaCanvas(){var c=document.getElementById('albFirma');if(!c)return;var ctx=c.getContext('2d');ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#000';var drawing=false;function pos(e){var r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)};}c.onpointerdown=function(e){drawing=true;try{c.setPointerCapture(e.pointerId);}catch(err){}var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();};c.onpointermove=function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();};c.onpointerup=function(){drawing=false;};c.onpointercancel=function(){drawing=false;};}
 function limpiarFirma(){var c=document.getElementById('albFirma');if(!c)return;var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
 function guardarAlbaran(){if(!requireFB()||!albCtx)return;var c=document.getElementById('albFirma');var firma=c?c.toDataURL('image/png'):'';var s=servicioPorId(albCtx.servicioId);if(!s)return;var cl=clientById(s.clienteId)||{};var kg=albCtx.tipo==='recogida'?((s.pesoCliente!=null)?s.pesoCliente:(s.kg||0)):(s.kg||0);var now=nowLocal();var prendas=albPrendas.slice();var matTotal=0;prendas.forEach(function(p){matTotal+=p.total;});matTotal=Math.round(matTotal*100)/100;var tipoCtx=albCtx.tipo;var rec={tipo:tipoCtx,servicioId:s.id,clienteId:s.clienteId,clienteNombre:cl.nombre||s.clienteNombre||'',clienteNombreComercial:cl.nombreComercial||'',clienteNif:cl.nif||'',clienteContacto:cl.contacto||'',clienteTelefono:cl.telefono||'',clienteDireccion:cl.direccion||'',kg:kg,total:(tipoCtx==='entrega'?(Number(s.total)||0):0),nota:s.nota||'',notaMaterial:s.notaMaterial||'',prendas:prendas,importeMaterial:matTotal,fecha:now,firma:firma,emitidoPor:role};db.ref('albaranes').push(rec).then(function(){if(tipoCtx==='recogida'){db.ref('servicios/'+s.id).update({prendas:prendas,importeMaterial:matTotal,materialEspecial:prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', ')});}cerrarAlbaranModal();showToast('✅ Albarán guardado','success');}).catch(function(e){showToast('❌ Error: '+e.message,'error');});}
-function descargarAlbaranPDF(id){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var a=albaranPorId(id);if(!a){showToast('⚠️ Albarán no encontrado','error');return;}var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();doc.setFontSize(14);doc.text(empresa.nombre||'',14,16);doc.setFontSize(9);doc.text(TAGLINE,14,22);doc.text('NIF: '+(empresa.nif||''),14,27);doc.text(empresa.direccion||'',14,32);doc.setFontSize(13);doc.text(a.tipo==='recogida'?'ALBARÁN DE RECOGIDA':'ALBARÁN DE ENTREGA',14,42);doc.setFontSize(10);doc.text('Fecha: '+fdt(a.fecha),14,50);doc.text('Cliente: '+(a.clienteNombreComercial||a.clienteNombre||''),14,58);var y=64;if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){doc.text('Recogido el: '+fr.texto,14,y);y+=6;}}if(a.clienteNif){doc.text('NIF/CIF: '+a.clienteNif,14,y);y+=6;}if(a.clienteContacto){doc.text('Contacto: '+a.clienteContacto,14,y);y+=6;}if(a.clienteTelefono){doc.text('Teléfono: '+a.clienteTelefono,14,y);y+=6;}if(a.clienteDireccion){doc.text('Dirección: '+a.clienteDireccion,14,y);y+=6;}doc.text('Kilos: '+(a.kg||0)+' kg',14,y);y+=6;if(a.tipo==='entrega'&&a.total){doc.text('Total (IGIC incl.): '+Number(a.total).toFixed(2)+' €',14,y);y+=6;}if(a.prendas&&a.prendas.length){doc.text('Materiales:',14,y);y+=5;a.prendas.forEach(function(p){doc.text('   '+p.qty+' x '+p.tipo+'  = '+Number(p.total).toFixed(2)+' €',14,y);y+=5;});y+=1;}if(a.nota){doc.text('Nota cliente: '+String(a.nota).slice(0,140),14,y);y+=6;}if(a.notaMaterial){doc.text('Nota interna: '+String(a.notaMaterial).slice(0,140),14,y);y+=6;}y+=4;doc.text('Firma del cliente:',14,y);y+=4;if(a.firma){try{doc.addImage(a.firma,'PNG',14,y,88,36);}catch(e){}y+=42;}doc.setFontSize(8);doc.text('Documento generado por '+(empresa.nombre||'')+' · '+TAGLINE,14,y+2);doc.save('Albaran_'+a.tipo+'_'+(a.fecha||'')+'.pdf');showToast('✅ Albarán descargado','success');}
-function renderClientAlbaranes(){var b=document.getElementById('clientAlbaranesList');if(!b)return;var list=albaranes.filter(function(a){return a.clienteId===clienteIdFijo;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});if(!list.length){b.innerHTML='<div class="empty">Aún no hay albaranes.</div>';return;}b.innerHTML=list.map(function(a){var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);var frTxt='';if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){frTxt=' · 📅 Recogida: '+fr.texto;}}return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+frTxt+'</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+'</div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';}).join('');}
-function renderAlbaranesAdmin(){var selC=document.getElementById('albCliente');var selP=document.getElementById('albPeriodo');var selT=document.getElementById('albTipo');var box=document.getElementById('albaranesList');if(!selC||!box)return;var curC=selC.value,curP=selP.value,curT=selT?selT.value:'todos';selC.innerHTML='<option value="todos">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(curC)selC.value=curC;if(!selC.value)selC.value='todos';var months={};albaranes.forEach(function(a){if(a.fecha)months[ymOf(a.fecha)]=1;});var mList=Object.keys(months).sort().reverse();selP.innerHTML='<option value="todos">Todos los periodos</option>'+mList.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');if(curP&&mList.indexOf(curP)!==-1)selP.value=curP;else selP.value='todos';if(selT)selT.value=curT||'todos';var cid=selC.value,per=selP.value,tip=selT?selT.value:'todos';var list=albaranes.filter(function(a){if(cid!=='todos'&&a.clienteId!==cid)return false;if(per!=='todos'&&ymOf(a.fecha)!==per)return false;if(tip!=='todos'&&a.tipo!==tip)return false;return true;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});if(!list.length){box.innerHTML='<div class="empty">No hay albaranes con ese filtro.</div>';return;}box.innerHTML=list.map(function(a){var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);var frTxt='';if(a.tipo==='entrega'){var fr=fechaRecogidaInfo(a.servicioId);if(fr){frTxt=' · 📅 Recogida: '+fr.texto;}}return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b> · '+esc(a.clienteNombreComercial||a.clienteNombre||'')+'<div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+(a.tipo==='entrega'&&a.total?' · '+fp(a.total):'')+frTxt+'</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+(a.firma?'<div class="otime">✍️ Firmado</div>':'<div class="otime">Sin firma</div>')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button><button class="btn btn-grey btn-sm" onclick="abrirAlbaranEdit(\''+a.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="borrarAlbaran(\''+a.id+'\')">🗑️</button></div></div>';}).join('');}
+function descargarAlbaranPDF(id){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var a=albaranPorId(id);if(!a){showToast('⚠️ Albarán no encontrado','error');return;}var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();doc.setFontSize(14);doc.text(empresa.nombre||'',14,16);doc.setFontSize(9);doc.text(TAGLINE,14,22);doc.text('NIF: '+(empresa.nif||''),14,27);doc.text(empresa.direccion||'',14,32);doc.setFontSize(13);doc.text(a.tipo==='recogida'?'ALBARÁN DE RECOGIDA':'ALBARÁN DE ENTREGA',14,42);doc.setFontSize(10);doc.text('Fecha: '+fdt(a.fecha),14,50);doc.text('Cliente: '+(a.clienteNombreComercial||a.clienteNombre||''),14,58);var y=64;if(a.tipo==='entrega'){var frCorta=fechaRecogidaCorta(a.servicioId);if(frCorta!=='—'){doc.text('Recogido el: '+frCorta,14,y);y+=6;}}if(a.clienteNif){doc.text('NIF/CIF: '+a.clienteNif,14,y);y+=6;}if(a.clienteContacto){doc.text('Contacto: '+a.clienteContacto,14,y);y+=6;}if(a.clienteTelefono){doc.text('Teléfono: '+a.clienteTelefono,14,y);y+=6;}if(a.clienteDireccion){doc.text('Dirección: '+a.clienteDireccion,14,y);y+=6;}doc.text('Kilos: '+(a.kg||0)+' kg',14,y);y+=6;if(a.tipo==='entrega'&&a.total){doc.text('Total (IGIC incl.): '+Number(a.total).toFixed(2)+' €',14,y);y+=6;}if(a.prendas&&a.prendas.length){doc.text('Materiales:',14,y);y+=5;a.prendas.forEach(function(p){doc.text('   '+p.qty+' x '+p.tipo+'  = '+Number(p.total).toFixed(2)+' €',14,y);y+=5;});y+=1;}if(a.nota){doc.text('Nota cliente: '+String(a.nota).slice(0,140),14,y);y+=6;}if(a.notaMaterial){doc.text('Nota interna: '+String(a.notaMaterial).slice(0,140),14,y);y+=6;}y+=4;doc.text('Firma del cliente:',14,y);y+=4;if(a.firma){try{doc.addImage(a.firma,'PNG',14,y,88,36);}catch(e){}y+=42;}doc.setFontSize(8);doc.text('Documento generado por '+(empresa.nombre||'')+' · '+TAGLINE,14,y+2);doc.save('Albaran_'+a.tipo+'_'+(a.fecha||'')+'.pdf');showToast('✅ Albarán descargado','success');}
+
+// ===== LISTAS DE ALBARANES CON FECHA CORTA =====
+function renderClientAlbaranes(){var b=document.getElementById('clientAlbaranesList');if(!b)return;var list=albaranes.filter(function(a){return a.clienteId===clienteIdFijo;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});if(!list.length){b.innerHTML='<div class="empty">Aún no hay albaranes.</div>';return;}b.innerHTML=list.map(function(a){var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);var frTxt='';if(a.tipo==='entrega'){var frCorta=fechaRecogidaCorta(a.servicioId);if(frCorta!=='—'){frTxt=' · 📅 Recogida: '+frCorta;}}return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b><div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+frTxt+'</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+'</div><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button></div>';}).join('');}
+
+function renderAlbaranesAdmin(){var selC=document.getElementById('albCliente');var selP=document.getElementById('albPeriodo');var selT=document.getElementById('albTipo');var box=document.getElementById('albaranesList');if(!selC||!box)return;var curC=selC.value,curP=selP.value,curT=selT?selT.value:'todos';selC.innerHTML='<option value="todos">Todos los clientes</option>'+clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(curC)selC.value=curC;if(!selC.value)selC.value='todos';var months={};albaranes.forEach(function(a){if(a.fecha)months[ymOf(a.fecha)]=1;});var mList=Object.keys(months).sort().reverse();selP.innerHTML='<option value="todos">Todos los periodos</option>'+mList.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+'</option>';}).join('');if(curP&&mList.indexOf(curP)!==-1)selP.value=curP;else selP.value='todos';if(selT)selT.value=curT||'todos';var cid=selC.value,per=selP.value,tip=selT?selT.value:'todos';var list=albaranes.filter(function(a){if(cid!=='todos'&&a.clienteId!==cid)return false;if(per!=='todos'&&ymOf(a.fecha)!==per)return false;if(tip!=='todos'&&a.tipo!==tip)return false;return true;}).sort(function(x,y){return(y.fecha||0)-(x.fecha||0);});if(!list.length){box.innerHTML='<div class="empty">No hay albaranes con ese filtro.</div>';return;}box.innerHTML=list.map(function(a){var mats=(a.prendas&&a.prendas.length)?('<div class="otime">🧵 '+esc(a.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var notas=[];if(a.nota)notas.push('Cliente: '+a.nota);if(a.notaMaterial)notas.push('Interna: '+a.notaMaterial);var frTxt='';if(a.tipo==='entrega'){var frCorta=fechaRecogidaCorta(a.servicioId);if(frCorta!=='—'){frTxt=' · 📅 Recogida: '+frCorta;}}return '<div class="alertrow" style="border-left-color:var(--green);flex-wrap:wrap;"><div style="flex:1;"><b>'+(a.tipo==='recogida'?'📥 Recogida':'📦 Entrega')+'</b> · '+esc(a.clienteNombreComercial||a.clienteNombre||'')+'<div class="otime">'+fdt(a.fecha)+' · '+(a.kg||0)+' kg'+(a.tipo==='entrega'&&a.total?' · '+fp(a.total):'')+frTxt+'</div>'+mats+(notas.length?'<div class="otime">📝 '+esc(notas.join(' | '))+'</div>':'')+(a.firma?'<div class="otime">✍️ Firmado</div>':'<div class="otime">Sin firma</div>')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="descargarAlbaranPDF(\''+a.id+'\')">⬇ PDF</button><button class="btn btn-grey btn-sm" onclick="abrirAlbaranEdit(\''+a.id+'\')">✏️</button><button class="btn btn-red btn-sm" onclick="borrarAlbaran(\''+a.id+'\')">🗑️</button></div></div>';}).join('');}
+
 function abrirAlbaranEdit(id){if(role!=='admin'){showToast('⚠️ Solo el admin puede editar albaranes','error');return;}var a=albaranPorId(id);if(!a)return;document.getElementById('albEditId').value=id;document.getElementById('albEditKg').value=a.kg||0;document.getElementById('albEditTotal').value=a.total||0;document.getElementById('albEditNota').value=a.nota||'';document.getElementById('albEditNotaMat').value=a.notaMaterial||'';albEditPrendas=(a.prendas||[]).map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});albEditQuitarFirmaFlag=false;updateAlbEditFirmaEstado(a);populateAlbEditPrendaSelect();renderAlbEditPrendas();document.getElementById('albaranEditModal').classList.remove('hidden');}
 function cerrarAlbaranEdit(){albEditPrendas=[];albEditQuitarFirmaFlag=false;document.getElementById('albaranEditModal').classList.add('hidden');}
 function populateAlbEditPrendaSelect(){var s=document.getElementById('albEditPrenda');if(!s)return;s.innerHTML=PRENDAS.map(function(p){return '<option value="'+esc(p)+'">'+esc(p)+'</option>';}).join('');}
@@ -964,9 +928,7 @@ function addPrendaLine(){var tipo=document.getElementById('pesarPrenda').value;v
 function removePrendaLine(i){pesarPrendas.splice(i,1);renderPrendasList();updatePesarPreview();}
 function renderPrendasList(){var b=document.getElementById('pesarPrendasList');if(!b)return;if(!pesarPrendas.length){b.innerHTML='';return;}b.innerHTML=pesarPrendas.map(function(p,i){return '<div class="prenda-line"><span>'+esc(p.tipo)+' ×'+p.qty+' @ '+fp(p.precio)+'</span><span><b>'+fp(p.total)+'</b> <button class="btn btn-red btn-sm" onclick="removePrendaLine('+i+')">✕</button></span></div>';}).join('');}
 function prendasTotal(){var t=0;pesarPrendas.forEach(function(p){t+=p.total;});return Math.round(t*100)/100;}
-var pesarServicioId=null;
-var pesarPrendas=[];
-var pesarEditMode=false;
+var pesarServicioId=null;var pesarPrendas=[];var pesarEditMode=false;
 function abrirPesarModal(id,edit){pesarServicioId=id;pesarEditMode=!!edit;var s=servicioActual();document.getElementById('pesarTitle').textContent=pesarEditMode?'✏️ Editar servicio pesado':'⚖️ Pesar servicio';var notaBox=document.getElementById('pesarNotaPedido');if(notaBox){if(s&&s.nota){notaBox.style.display='block';notaBox.textContent='📝 Nota del cliente: '+s.nota;}else{notaBox.style.display='none';notaBox.textContent='';}}if(s&&s.prendas&&s.prendas.length){pesarPrendas=s.prendas.map(function(p){return{tipo:p.tipo,qty:p.qty,precio:p.precio,total:p.total};});}else{pesarPrendas=[];}var prefillKg=(s&&s.kg)?s.kg:((s&&s.pesoCliente!=null)?s.pesoCliente:'');document.getElementById('pesarKg').value=prefillKg;document.getElementById('pesarNota').value=(s&&s.notaMaterial)||'';document.getElementById('pesarPrendaQty').value='1';populatePrendaSelect();renderPrendasList();document.getElementById('pesarModal').classList.remove('hidden');updatePesarPreview();}
 function cerrarPesarModal(){document.getElementById('pesarModal').classList.add('hidden');pesarServicioId=null;pesarPrendas=[];pesarEditMode=false;}
 function updatePesarPreview(){var el=document.getElementById('pesarPreview');if(!el||!pesarServicioId)return;var s=servicioActual();if(!s)return;var kg=parseFloat(document.getElementById('pesarKg').value)||0;var pk=Number(s.precioKilo)||0;var base=kg*pk;var mat=prendasTotal();var tot=base+mat;el.textContent=kg+' kg × '+fp(pk)+' = '+fp(base)+(mat?' + prendas '+fp(mat):'')+'  →  TOTAL '+fp(tot);var pcEl=document.getElementById('pesarPesoCliente');var difEl=document.getElementById('pesarDif');if(pcEl)pcEl.textContent=(s.pesoCliente!=null? s.pesoCliente+' kg':'—');if(difEl){if(s.pesoCliente!=null&&kg>0){var d=Math.round((kg-s.pesoCliente)*100)/100;difEl.textContent='Diferencia: '+d.toFixed(2)+' kg';difEl.style.color=(d!==0?'var(--red)':'var(--green)');difEl.style.fontWeight='700';}else{difEl.textContent='Diferencia: —';difEl.style.color='var(--t2)';difEl.style.fontWeight='400';}}}
@@ -984,252 +946,56 @@ function renderClientServicios(){var b=document.getElementById('clientServicios'
 function renderTotal(){var base=0;clientServicios.forEach(function(s){if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1)base+=Number(s.total)||0;});var c=document.getElementById('totalCard'),v=document.getElementById('totalValue'),bd=document.getElementById('totalBreakdown');if(base>0){c.style.display='block';v.textContent=fp(totalConIGIC(base));if(bd)bd.textContent='Base '+fp(base)+' + IGIC 7% '+fp(igicOf(base));}else{c.style.display='none';if(bd)bd.textContent='';}}
 function renderClientFacturas(){var b=document.getElementById('clientFacturasList');if(!b)return;var set={};servicios.forEach(function(s){if(s.clienteId===clienteIdFijo&&['PESADO','ENTREGADO'].indexOf(s.estado)!==-1&&(Number(s.total)||0)>0){var ym=ymOf(s.tsPesado||s.createdAtLocal);if(!set[ym])set[ym]={n:0,kg:0,t:0};set[ym].n++;set[ym].kg+=Number(s.kg)||0;set[ym].t+=Number(s.total)||0;}});var months=Object.keys(set).sort().reverse();if(!months.length){b.innerHTML='<div class="empty">Aún no hay facturas.</div>';return;}b.innerHTML=months.map(function(m){var s=set[m];return'<div class="alertrow" style="border-left-color:var(--purple)"><div><b>'+monthLabel(m)+'</b><div class="otime">'+s.n+' lavado(s) · '+s.kg.toFixed(1)+' kg · IGIC '+fp(igicOf(s.t))+'</div></div><div style="display:flex;align-items:center;gap:8px;"><b>'+fp(totalConIGIC(s.t))+'</b><button class="btn btn-grey btn-sm" onclick="generarPDFMensual(\''+clienteIdFijo+'\',\''+m+'\')">⬇ PDF</button></div></div>';}).join('');}
 
-// ===== RECUPERACIÓN L30 =====
-function analizarRecuperacion(){if(!requireFB()){showToast('❌ Firebase no listo','error');return;}if(role!=='admin'){showToast('⚠️ Solo el admin puede recuperar facturas','error');return;}showToast('🔍 Analizando base de datos...','success');var panel=document.getElementById('recuperacionPanel');var statsBox=document.getElementById('recuperacionStats');var detalleBox=document.getElementById('recuperacionDetalle');var logBox=document.getElementById('recuperacionLog');var btnEjecutar=document.getElementById('btnEjecutarRecuperacion');panel.classList.remove('hidden');logBox.classList.add('hidden');logBox.innerHTML='';btnEjecutar.disabled=true;statsBox.innerHTML='<div class="recuperacion-stat"><b>...</b><span>Analizando</span></div>';detalleBox.textContent='Escaneando servicios y facturas...';
-setTimeout(function(){
-var serviciosFacturables=servicios.filter(function(s){return ['PESADO','ENTREGADO'].indexOf(s.estado)!==-1 && (Number(s.total)||0)>0 && s.tsPesado;});
-var facturasAntiguas=facturas.filter(function(f){return f.numero && (f.numero.toLowerCase().indexOf('fm-')===0 || f.numero.toLowerCase().indexOf('fm_')===0);});
-var grupos={};serviciosFacturables.forEach(function(s){var ym=ymOf(s.tsPesado);var key=s.clienteId+'_'+ym;if(!grupos[key]){grupos[key]={clienteId:s.clienteId,ym:ym,servicios:[],totalKg:0,totalBase:0};}grupos[key].servicios.push(s);grupos[key].totalKg+=Number(s.kg)||0;grupos[key].totalBase+=Number(s.total)||0;});
-var faltantes=[];Object.keys(grupos).forEach(function(key){var g=grupos[key];var existe=facturasMensuales.some(function(fm){return fm.clientId===g.clienteId && fm.ym===g.ym;});if(!existe){faltantes.push(g);}});
-recuperacionData={totalServicios:serviciosFacturables.length,totalFacturasAntiguas:facturasAntiguas.length,totalFaltantes:faltantes.length,faltantes:faltantes};
-var statsHtml='<div class="recuperacion-stat"><b>'+serviciosFacturables.length+'</b><span>Servicios facturables</span></div><div class="recuperacion-stat"><b>'+facturasAntiguas.length+'</b><span>Facturas antiguas (fm-)</span></div><div class="recuperacion-stat"><b>'+faltantes.length+'</b><span>Facturas mensuales faltantes</span></div>';
-statsBox.innerHTML=statsHtml;
-if(faltantes.length===0){detalleBox.innerHTML='<div style="color:var(--green);font-weight:700;">✅ No se encontraron facturas mensuales faltantes. Todo está en orden.</div>';btnEjecutar.disabled=true;}
-else{var detalle='<div style="margin-top:10px;"><b>Facturas mensuales a crear:</b></div><div style="max-height:200px;overflow-y:auto;margin-top:8px;">';faltantes.forEach(function(g){var c=clientById(g.clienteId);var nombre=c?(c.nombreComercial||c.nombre):'Cliente desconocido';detalle+='<div class="otime" style="padding:4px 0;border-bottom:1px solid var(--border);">'+esc(nombre)+' · '+monthLabel(g.ym)+' · '+g.servicios.length+' servicios · '+g.totalKg.toFixed(1)+' kg · '+fp(g.totalBase)+'</div>';});detalle+='</div>';detalleBox.innerHTML=detalle;btnEjecutar.disabled=false;}
-},500);}
-function ejecutarRecuperacion(){if(!recuperacionData||!recuperacionData.faltantes.length){showToast('⚠️ No hay nada que recuperar','error');return;}if(!confirm('⚠️ Se crearán '+recuperacionData.faltantes.length+' facturas mensuales.\nLas facturas antiguas (con prefijo fm-) se conservarán.\n¿Continuar?')){return;}var panel=document.getElementById('recuperacionPanel');var logBox=document.getElementById('recuperacionLog');var btnEjecutar=document.getElementById('btnEjecutarRecuperacion');logBox.classList.remove('hidden');logBox.innerHTML='<div class="recuperacion-log-line info">Iniciando recuperación...</div>';btnEjecutar.disabled=true;var faltantes=recuperacionData.faltantes.slice();var index=0;
-function procesarSiguiente(){if(index>=faltantes.length){logBox.innerHTML+='<div class="recuperacion-log-line success">✅ Recuperación completada</div>';showToast('✅ Recuperación completada','success');btnEjecutar.disabled=false;setTimeout(function(){panel.classList.add('hidden');renderAll();},2000);return;}var g=faltantes[index];var c=clientById(g.clienteId);var nombre=c?(c.nombreComercial||c.nombre):'Cliente desconocido';logBox.innerHTML+='<div class="recuperacion-log-line info">Creando factura para '+esc(nombre)+' ('+monthLabel(g.ym)+')...</div>';logBox.scrollTop=logBox.scrollHeight;ensureFacturaMensual(g.clienteId,g.ym,function(rec){logBox.innerHTML+='<div class="recuperacion-log-line success">✅ Creada: '+rec.numero+'</div>';logBox.scrollTop=logBox.scrollHeight;index++;setTimeout(procesarSiguiente,100);});}
-procesarSiguiente();}
-
-// ===== GESTIÓN DE INCIDENCIAS L31 =====
-function verificarIntegridad(){
-if(role!=='admin'){showToast('⚠️ Solo admin','error');return;}
-showToast('🔍 Verificando integridad...','success');
-var statsBox=document.getElementById('gestionStats');
-var detalleBox=document.getElementById('gestionDetalle');
-var listBox=document.getElementById('gestionList');
-var btnExp=document.getElementById('btnExportarDiagnostico');
-statsBox.innerHTML='<div class="gestion-stat"><b class="warn">...</b><span>Analizando</span></div>';
-detalleBox.textContent='';
-listBox.innerHTML='';
-btnExp.style.display='none';
-
-setTimeout(function(){
-var anomalias=[];
-// 1. Servicios PESADO/ENTREGADO sin factura individual
-servicios.forEach(function(s){
-if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1 && !s.facturaId){
-anomalias.push({tipo:'sin_fac_ind',sev:'err',servicioId:s.id,msg:'Servicio '+stLabel(s.estado)+' sin factura individual',cliente:(clientById(s.clienteId)||{}).nombre||s.clienteNombre||'?'});
-}
-});
-// 2. Servicios PESADO/ENTREGADO sin factura mensual
-servicios.forEach(function(s){
-if(['PESADO','ENTREGADO'].indexOf(s.estado)!==-1 && s.tsPesado && (Number(s.total)||0)>0){
-var ym=ymOf(s.tsPesado);
-if(!facturaMensualDe(s.clienteId,ym)){
-anomalias.push({tipo:'sin_fac_men',sev:'warn',servicioId:s.id,msg:'Servicio sin factura mensual ('+monthLabel(ym)+')',cliente:(clientById(s.clienteId)||{}).nombre||s.clienteNombre||'?'});
-}
-}
-});
-// 3. Facturas individuales sin servicio asociado (huérfanas)
-facturas.forEach(function(f){
-if(f.servicioId){
-var s=servicioPorId(f.servicioId);
-if(!s){
-anomalias.push({tipo:'fac_huerfana',sev:'err',facturaId:f.id,msg:'Factura '+f.numero+' sin servicio asociado',cliente:f.clienteNombre||'?'});
-}
-}
-});
-// 4. Facturas mensuales sin servicios que las justifiquen
-facturasMensuales.forEach(function(fm){
-if(fm.clientId && fm.ym){
-var tiene=servicios.some(function(s){return s.clienteId===fm.clientId && s.tsPesado && ymOf(s.tsPesado)===fm.ym && ['PESADO','ENTREGADO'].indexOf(s.estado)!==-1 && (Number(s.total)||0)>0;});
-if(!tiene){
-anomalias.push({tipo:'fm_huerfana',sev:'warn',fmId:fm.id,msg:'Factura mensual '+fm.numero+' sin servicios ('+monthLabel(fm.ym)+')',cliente:(clientById(fm.clientId)||{}).nombre||'?'});
-}
-}
-});
-// 5. Totales descuadrados
-servicios.forEach(function(s){
-if(s.facturaId){
-var f=facturaPorNumero(s.facturaId);
-if(f && Math.abs((Number(s.total)||0)-(Number(f.total)||0))>0.01){
-anomalias.push({tipo:'descuadre',sev:'err',servicioId:s.id,facturaId:f.id,msg:'Total servicio ('+fp(s.total)+') ≠ factura ('+fp(f.total)+')',cliente:(clientById(s.clienteId)||{}).nombre||s.clienteNombre||'?'});
-}
-}
-});
-
-diagnosticoData=anomalias;
-
-var sinFacInd=anomalias.filter(function(a){return a.tipo==='sin_fac_ind';}).length;
-var sinFacMen=anomalias.filter(function(a){return a.tipo==='sin_fac_men';}).length;
-var facHuer=anomalias.filter(function(a){return a.tipo==='fac_huerfana';}).length;
-var fmHuer=anomalias.filter(function(a){return a.tipo==='fm_huerfana';}).length;
-var descuad=anomalias.filter(function(a){return a.tipo==='descuadre';}).length;
-var total=anomalias.length;
-
-statsBox.innerHTML=
-'<div class="gestion-stat"><b class="'+(sinFacInd===0?'ok':'err')+'">'+sinFacInd+'</b><span>Sin fac. individual</span></div>'+
-'<div class="gestion-stat"><b class="'+(sinFacMen===0?'ok':'warn')+'">'+sinFacMen+'</b><span>Sin fac. mensual</span></div>'+
-'<div class="gestion-stat"><b class="'+(facHuer===0?'ok':'err')+'">'+facHuer+'</b><span>Fac. huérfanas</span></div>'+
-'<div class="gestion-stat"><b class="'+(fmHuer===0?'ok':'warn')+'">'+fmHuer+'</b><span>FM huérfanas</span></div>'+
-'<div class="gestion-stat"><b class="'+(descuad===0?'ok':'err')+'">'+descuad+'</b><span>Descuadres</span></div>'+
-'<div class="gestion-stat"><b class="'+(total===0?'ok':'err')+'">'+total+'</b><span>Total anomalías</span></div>';
-
-if(total===0){
-detalleBox.innerHTML='<div style="color:var(--green);font-weight:700;">✅ Base de datos íntegra. No se detectaron anomalías.</div>';
-listBox.innerHTML='';
-}else{
-detalleBox.innerHTML='<div style="color:var(--gold);">⚠️ Se detectaron '+total+' anomalía(s). Revisa la lista y actúa sobre cada una.</div>';
-// Ordenar por gravedad: err primero, luego warn
-anomalias.sort(function(a,b){var sev={err:0,warn:1,ok:2};return (sev[a.sev]||2)-(sev[b.sev]||2);});
-listBox.innerHTML=anomalias.map(function(a,i){
-var acciones='';
-if(a.servicioId){
-acciones+='<button class="btn btn-grey btn-sm" onclick="irAServicio(\''+a.servicioId+'\')">🔗 Ver</button>';
-if(a.tipo==='sin_fac_ind'){acciones+='<button class="btn btn-gold btn-sm" onclick="regenerarFacturaIndividual(\''+a.servicioId+'\')">🧾 Crear fac.</button>';}
-if(a.tipo==='descuadre'){acciones+='<button class="btn btn-gold btn-sm" onclick="sincronizarTotal(\''+a.servicioId+'\',\''+a.facturaId+'\')">🔄 Sincronizar</button>';}
-}
-if(a.facturaId && a.tipo==='fac_huerfana'){
-acciones+='<button class="btn btn-grey btn-sm" onclick="abrirFacturaEdit(\''+a.facturaId+'\')">✏️</button>';
-acciones+='<button class="btn btn-red btn-sm" onclick="borrarFacturaIndividual(\''+a.facturaId+'\')">🗑️</button>';
-}
-if(a.fmId){
-acciones+='<button class="btn btn-grey btn-sm" onclick="abrirFacturaMensualEdit(\''+a.fmId+'\',\''+a.facturaId+'\')">✏️</button>';
-acciones+='<button class="btn btn-red btn-sm" onclick="borrarFacturaMensual(\''+a.fmId+'\')">🗑️</button>';
-}
-return '<div class="gestion-item '+a.sev+'"><div style="flex:1;"><b>'+esc(a.cliente)+'</b><div class="otime">'+esc(a.msg)+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">'+acciones+'</div></div>';
-}).join('');
-btnExp.style.display='block';
-}
-},300);
-}
-
-function irAServicio(id){
-showTab('servicios');
-setTimeout(function(){
-var s=servicioPorId(id);if(!s){showToast('⚠️ Servicio no encontrado','error');return;}
-var el=document.querySelector('[onclick*="\''+id+'\'"]');
-if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.boxShadow='0 0 0 3px var(--gold)';setTimeout(function(){el.style.boxShadow='';},2500);}
-},200);
-}
-
-function regenerarFacturaIndividual(sid){
-if(!requireFB())return;
-var s=servicioPorId(sid);if(!s){showToast('⚠️ Servicio no encontrado','error');return;}
-if(!confirm('⚠️ Se creará una nueva factura individual para este servicio.\n¿Continuar?'))return;
-nextNumeroFactura(function(num){
-var d=new Date(s.tsPesado||nowLocal());
-db.ref('facturas/'+newId()).set({numero:num,fecha:localISO(d),hora:pad2(d.getHours())+':'+pad2(d.getMinutes()),timestamp:s.tsPesado||nowLocal(),clienteId:s.clienteId,clienteNombre:s.clienteNombre,kg:s.kg,precioKilo:s.precioKilo,base:(Number(s.total)||0)-(Number(s.importeMaterial)||0),prendas:s.prendas||[],materialImporte:Number(s.importeMaterial)||0,materialDesc:s.materialEspecial||'',notaMaterial:s.notaMaterial||'',diferenciaKg:s.diferenciaKg,total:Number(s.total)||0,servicioId:s.id})
-.then(function(){return db.ref('servicios/'+sid).update({facturaId:num});})
-.then(function(){showToast('✅ Factura '+num+' creada','success');verificarIntegridad();})
-.catch(function(e){showToast('❌ Error: '+e.message,'error');});
-});
-}
-
-function sincronizarTotal(sid,fid){
-if(!requireFB())return;
-var s=servicioPorId(sid);var f=facturaPorNumero(fid);
-if(!s||!f){showToast('⚠️ No encontrado','error');return;}
-if(!confirm('⚠️ Se actualizará el total de la factura al total del servicio ('+fp(s.total)+').\n¿Continuar?'))return;
-var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);
-db.ref('facturas/'+f.id).update({kg:s.kg,total:Number(s.total)||0,base:base,materialImporte:Number(s.importeMaterial)||0}).then(function(){showToast('✅ Factura sincronizada','success');verificarIntegridad();}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
-}
-
-function borrarFacturaIndividual(fid){
-if(!requireFB())return;
-var f=facturaPorId(fid);if(!f){showToast('⚠️ Factura no encontrada','error');return;}
-var tec=prompt('⚠️ Se borrará la factura '+f.numero+'.\nEscribe BORRAR para confirmar:');
-if(tec!=='BORRAR'){showToast('❌ Cancelado','error');return;}
-var ops=[db.ref('facturas/'+fid).remove()];
-if(f.servicioId){ops.push(db.ref('servicios/'+f.servicioId).update({facturaId:null}));}
-Promise.all(ops).then(function(){showToast('✅ Factura borrada','success');verificarIntegridad();}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
-}
-
-function borrarFacturaMensual(fmId){
-if(!requireFB())return;
-var fm=null;var fmKey=null;
-for(var i=0;i<facturasMensuales.length;i++){if(facturasMensuales[i].id===fmId){fm=facturasMensuales[i];fmKey=fm.id;break;}}
-if(!fm){showToast('⚠️ Factura mensual no encontrada','error');return;}
-if(!confirm('⚠️ Se borrará la factura mensual '+fm.numero+' ('+monthLabel(fm.ym)+').\nLos servicios NO se borran.\n¿Continuar?'))return;
-db.ref('facturasMensuales/'+fmKey).remove().then(function(){showToast('✅ Factura mensual borrada','success');verificarIntegridad();}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
-}
-
+// ===== GESTIÓN DE FACTURAS: EDITAR Y ANULAR =====
 function abrirFacturaEdit(fid){
-var f=facturaPorId(fid);if(!f){showToast('⚠️ Factura no encontrada','error');return;}
-document.getElementById('facEditId').value=fid;
-document.getElementById('facEditNumero').value=f.numero||'';
-document.getElementById('facEditFecha').value=f.fecha||'';
-document.getElementById('facEditKg').value=f.kg||0;
-document.getElementById('facEditTotal').value=f.total||0;
-var sel=document.getElementById('facEditCliente');
-sel.innerHTML=clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
-if(f.clienteId)sel.value=f.clienteId;
-document.getElementById('facturaEditModal').classList.remove('hidden');
+    var f=facturaPorId(fid);if(!f){showToast('⚠️ Factura no encontrada','error');return;}
+    document.getElementById('facEditId').value=fid;
+    document.getElementById('facEditNumero').value=f.numero||'';
+    document.getElementById('facEditFecha').value=f.fecha||'';
+    document.getElementById('facEditKg').value=f.kg||0;
+    document.getElementById('facEditTotal').value=f.total||0;
+    var sel=document.getElementById('facEditCliente');
+    sel.innerHTML=clientes.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');
+    if(f.clienteId) sel.value=f.clienteId;
+    document.getElementById('facturaEditModal').classList.remove('hidden');
 }
 function cerrarFacturaEdit(){document.getElementById('facturaEditModal').classList.add('hidden');}
 function guardarFacturaEdit(){
-if(!requireFB())return;
-var fid=document.getElementById('facEditId').value;
-var f=facturaPorId(fid);if(!f){showToast('⚠️ Factura no encontrada','error');return;}
-var upd={
-numero:document.getElementById('facEditNumero').value.trim(),
-fecha:document.getElementById('facEditFecha').value,
-kg:parseFloat(document.getElementById('facEditKg').value)||0,
-total:parseFloat(document.getElementById('facEditTotal').value)||0,
-clienteId:document.getElementById('facEditCliente').value
-};
-var c=clientById(upd.clienteId);
-if(c)upd.clienteNombre=c.nombreComercial||c.nombre;
-db.ref('facturas/'+fid).update(upd).then(function(){
-if(f.servicioId){
-var s=servicioPorId(f.servicioId);
-if(s){db.ref('servicios/'+f.servicioId).update({facturaId:upd.numero,clienteId:upd.clienteId,clienteNombre:upd.clienteNombre});}
-}
-cerrarFacturaEdit();showToast('✅ Factura actualizada','success');verificarIntegridad();
-}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
-}
-
-function abrirFacturaMensualEdit(fmId,fmKey){
-var fm=facturaMensualPorId(fmId);if(!fm){showToast('⚠️ Factura mensual no encontrada','error');return;}
-document.getElementById('fmEditId').value=fmId;
-document.getElementById('fmEditKey').value=fm.id;
-document.getElementById('fmEditNumero').value=fm.numero||'';
-document.getElementById('fmEditMes').value=fm.ym||'';
-document.getElementById('facturaMensualEditModal').classList.remove('hidden');
-}
-function cerrarFacturaMensualEdit(){document.getElementById('facturaMensualEditModal').classList.add('hidden');}
-function guardarFacturaMensualEdit(){
-if(!requireFB())return;
-var fmId=document.getElementById('fmEditId').value;
-var oldKey=document.getElementById('fmEditKey').value;
-var fm=facturaMensualPorId(fmId);if(!fm){showToast('⚠️ No encontrada','error');return;}
-var nuevoNumero=document.getElementById('fmEditNumero').value.trim();
-var nuevoMes=document.getElementById('fmEditMes').value;
-if(!nuevoNumero||!nuevoMes){showToast('⚠️ Número y mes obligatorios','error');return;}
-var newKey=(fm.clientId?fm.clientId+'_':'')+(fm.nif?'NIF_'+String(fm.nif).replace(/[^a-zA-Z0-9]/g,'_')+'_':'')+nuevoMes;
-var ops=[];
-if(oldKey!==newKey){ops.push(db.ref('facturasMensuales/'+oldKey).remove());}
-ops.push(db.ref('facturasMensuales/'+newKey).set({numero:nuevoNumero,clientId:fm.clientId,nif:fm.nif,ym:nuevoMes,createdAt:fm.createdAt||Date.now()}));
-Promise.all(ops).then(function(){cerrarFacturaMensualEdit();showToast('✅ Factura mensual actualizada','success');verificarIntegridad();}).catch(function(e){showToast('❌ Error: '+e.message,'error');});
+    if(!requireFB())return;
+    var fid=document.getElementById('facEditId').value;
+    var f=facturaPorId(fid);if(!f){showToast('⚠️ Factura no encontrada','error');return;}
+    var upd={
+        numero:document.getElementById('facEditNumero').value.trim(),
+        fecha:document.getElementById('facEditFecha').value,
+        kg:parseFloat(document.getElementById('facEditKg').value)||0,
+        total:parseFloat(document.getElementById('facEditTotal').value)||0,
+        clienteId:document.getElementById('facEditCliente').value
+    };
+    var c=clientById(upd.clienteId);
+    if(c) upd.clienteNombre=c.nombreComercial||c.nombre;
+    var ops=[db.ref('facturas/'+fid).update(upd)];
+    if(f.servicioId){
+        ops.push(db.ref('servicios/'+f.servicioId).update({facturaId:upd.numero, clienteId:upd.clienteId, clienteNombre:upd.clienteNombre}));
+    }
+    Promise.all(ops).then(function(){
+        cerrarFacturaEdit();showToast('✅ Factura actualizada','success');renderFacturas();
+    }).catch(function(e){showToast('❌ Error: '+e.message,'error');});
 }
 
-function exportarDiagnostico(){
-if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}
-if(!diagnosticoData||!diagnosticoData.length){showToast('⚠️ No hay anomalías','error');return;}
-var data=diagnosticoData.map(function(a){
-return {
-'Tipo':a.tipo,
-'Gravedad':a.sev==='err'?'ERROR':'AVISO',
-'Cliente':a.cliente||'',
-'Mensaje':a.msg,
-'Servicio ID':a.servicioId||'',
-'Factura ID':a.facturaId||a.fmId||''
-};
-});
-var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Diagnóstico');
-XLSX.writeFile(wb,'diagnostico_'+new Date().toISOString().slice(0,10)+'.xlsx');
-showToast('✅ Diagnóstico exportado','success');
+function anularFactura(fid){
+    if(!requireFB()) return;
+    var f=facturaPorId(fid);
+    if(!f){showToast('⚠️ Factura no encontrada','error');return;}
+    var tec=prompt('⚠️ Se anulará la factura '+f.numero+'.\nEl servicio mantendrá su estado pero quedará sin factura.\nEscribe ANULAR para confirmar:');
+    if(tec!=='ANULAR'){showToast('❌ Anulación cancelada','error');return;}
+    var ops=[db.ref('facturas/'+fid).remove()];
+    if(f.servicioId){
+        ops.push(db.ref('servicios/'+f.servicioId).update({facturaId:null}));
+    }
+    Promise.all(ops).then(function(){
+        showToast('✅ Factura anulada. El servicio mantiene su estado.','success');
+        renderFacturas();
+    }).catch(function(e){showToast('❌ Error: '+e.message,'error');});
 }
 
 function subscribeAll(){if(!firebaseReady||!db)return;
