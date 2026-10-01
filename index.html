@@ -772,22 +772,22 @@ function filtrarInfCliente(v){infFiltroCliente=(v||'').trim();renderInformeClien
 function filtrarServiciosInforme(){var cid=document.getElementById('infCliente').value;var desde=document.getElementById('infDesde').value;var hasta=document.getElementById('infHasta').value;var list=servicios.slice();if(cid&&cid!=='todos'){list=list.filter(function(s){return s.clienteId===cid;});}if(desde){var dms=new Date(desde+'T00:00:00').getTime();list=list.filter(function(s){return (s.createdAtLocal||0)>=dms;});}if(hasta){var hms=new Date(hasta+'T23:59:59').getTime();list=list.filter(function(s){return (s.createdAtLocal||0)<=hms;});}list.sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});return list;}
 function verInforme(){var box=document.getElementById('informeResultados');if(!box)return;var list=filtrarServiciosInforme();if(!list.length){box.innerHTML='<div class="empty">No hay servicios en ese filtro.</div>';return;}box.innerHTML='<div class="otime" style="margin-bottom:8px;">'+list.length+' servicio(s)</div>'+list.map(function(s){var c=clientById(s.clienteId)||{};var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';var infoS=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;"><div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div><div class="oitems">'+escL(s.nota||'')+'</div>'+(infoS?'<div class="otime" style="margin-top:4px;">'+infoS+'</div>':'')+'<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span></div></div>';}).join('');}
 
-// ===== Función clave: FECHAS EN EL EXCEL CON CASCADA =====
+// ===== CAMBIO 1: buildServiciosRows con prioridad tsRecogido (sin fallback a tsPesado) =====
 function buildServiciosRows(list){return list.map(function(s){var c=clientById(s.clienteId)||{};var fechaServ=s.createdAtLocal?new Date(s.createdAtLocal).toLocaleDateString('es-ES'):'';
-// ===== CAMBIO ÚNICO: PRIORIDAD tsRecogido sobre albarán =====
-var tsRec=s.tsRecogido;  // 1º Timestamp del botón "Recoger" (fecha REAL)
-if(!tsRec){  // 2º Fallback: albarán de recogida firmado
+var tsRec=s.tsRecogido;  // 1º Fecha REAL del botón "Recoger"
+if(!tsRec){
 for(var i=0;i<albaranes.length;i++){
 if(albaranes[i].servicioId===s.id && albaranes[i].tipo==='recogida' && albaranes[i].fecha){
 tsRec=albaranes[i].fecha;break;
-}}}
-if(!tsRec&&s.tsPesado)tsRec=s.tsPesado;  // 3º Pesaje
-if(!tsRec&&s.fechaRecogida){  // 4º Fecha programada (último recurso)
+}
+}
+}
+// ELIMINADO: if(!tsRec&&s.tsPesado)tsRec=s.tsPesado;
+if(!tsRec&&s.fechaRecogida){
 var p=String(s.fechaRecogida).split('-');
 if(p.length===3)tsRec=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();
 }
 var fechaRec=tsRec?new Date(tsRec).toLocaleDateString('es-ES'):'';
-// ====================================
 var fechaPes=s.tsPesado?new Date(s.tsPesado).toLocaleDateString('es-ES'):'';
 var fechaEnt=s.tsEntregado?new Date(s.tsEntregado).toLocaleDateString('es-ES'):'';
 var factMensual=(s.tsPesado&&s.clienteId)?(facturaMensualDe(s.clienteId,ymOf(s.tsPesado))||'—'):'—';
@@ -795,6 +795,7 @@ var prendasTxt=(s.prendas&&s.prendas.length)?s.prendas.map(function(p){return p.
 var total=Number(s.total)||0;
 var basePeso=total-(Number(s.importeMaterial)||0);
 return {'Cliente':c.nombre||s.clienteNombre||'','Nombre comercial':c.nombreComercial||'','NIF':c.nif||'','Contacto':c.contacto||'','Teléfono':c.telefono||'','Email':c.email||'','Dirección':c.direccion||'','Estado':stLabelPlain(s.estado),'Fecha servicio':fechaServ,'Fecha recogida':fechaRec,'Fecha pesaje':fechaPes,'Fecha entrega':fechaEnt,'Kg':s.kg||0,'Precio/kg':s.precioKilo||0,'Base peso (€)':round2(basePeso),'Prendas':prendasTxt,'Material (€)':Number(s.importeMaterial)||0,'Notas':s.nota||'','Diferencia kg':(s.diferenciaKg!=null?s.diferenciaKg:''),'Total base (€)':round2(total),'IGIC (7%)':round2(igicOf(total)),'Total con IGIC (€)':round2(totalConIGIC(total)),'Nº Factura (servicio)':s.facturaId||'—','Factura mensual':factMensual};});}
+
 function exportarInforme(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}var list=filtrarServiciosInforme();if(!list.length){showToast('⚠️ No hay servicios en ese filtro','error');return;}var data=buildServiciosRows(list);var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Informe');XLSX.writeFile(wb,'informe_servicios_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
 function exportarExcel(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}var list=servicios.slice().sort(function(a,b){return(b.createdAtLocal||0)-(a.createdAtLocal||0);});if(!list.length){showToast('⚠️ Sin servicios','error');return;}var data=buildServiciosRows(list);var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Servicios');XLSX.writeFile(wb,'servicios_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
 function renderPedidosClienteSelect(){var s=document.getElementById('pcCliente');if(!s)return;var q=norm(pcFiltroTexto);var list=clientes.slice();if(q){list=list.filter(function(c){var hay=norm(c.nombre||'')+' '+norm(c.nombreComercial||'');return hay.indexOf(q)!==-1;});}var cur=s.value;if(q){if(!list.length){s.innerHTML='<option value="">— Sin coincidencias —</option>';renderPeriodosCliente();return;}s.innerHTML=list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(cur&&list.some(function(c){return c.id===cur;}))s.value=cur;else s.value=list[0].id;}else{s.innerHTML='<option value="todos">Todos los clientes</option>'+list.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombreComercial||c.nombre||'')+'</option>';}).join('');if(cur)s.value=cur;if(!s.value)s.value='todos';}renderPeriodosCliente();}
@@ -804,7 +805,7 @@ function filtrarPedidosCliente(){var cid=document.getElementById('pcCliente').va
 function verPedidosCliente(){var box=document.getElementById('pedidosClienteResultados');if(!box)return;var list=filtrarPedidosCliente();if(!list.length){box.innerHTML='<div class="empty">No hay pedidos en ese filtro.</div>';return;}box.innerHTML='<div class="otime" style="margin-bottom:8px;">'+list.length+' pedido(s)</div>'+list.map(function(s){var c=clientById(s.clienteId)||{};var nombre=c.nombreComercial||c.nombre||s.clienteNombre||'—';var infoS=(s.kg?'⚖️ '+s.kg+' kg':'')+(s.importeMaterial?' · 🧵 +'+fp(s.importeMaterial):'')+(s.total?' · '+fp(s.total):'')+(s.facturaId?' · 🧾 '+esc(s.facturaId):'');var prendasTxt=(s.prendas&&s.prendas.length)?('<div class="otime" style="margin-top:4px;">🧵 '+esc(s.prendas.map(function(p){return p.qty+'×'+p.tipo;}).join(', '))+'</div>'):'';var weighed=['PESADO','ENTREGADO'].indexOf(s.estado)!==-1;var extra='';if(['RECOGIDO','PESADO','ENTREGADO'].indexOf(s.estado)!==-1){extra='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'+(esAdminOGerencia()?'<button class="btn btn-grey btn-sm" onclick="retrocederEstado(\''+s.id+'\')">↩️ Anterior</button>':'')+(weighed?'<button class="btn btn-grey btn-sm" onclick="abrirPesarModal(\''+s.id+'\',true)">✏️ Editar</button>':'')+(esAdminOGerencia()&&weighed?'<button class="btn btn-grey btn-sm" onclick="abrirTsModal(\''+s.id+'\')">🕒 Fechas</button>':'')+(esAdminOGerencia()&&weighed?'<button class="btn btn-red btn-sm" onclick="borrarServicio(\''+s.id+'\')">🗑️ Borrar</button>':'')+'</div>';}return '<div class="order '+stClass(s.estado)+'" style="margin-bottom:8px;"><div class="ohead"><span class="cliente-tag">🏨 '+esc(nombre)+'</span><span class="otime">'+(s.createdAtLocal?fdt(s.createdAtLocal):'')+'</span></div><div class="oitems">'+escL(s.nota||'')+'</div>'+lineaRecogida(s)+diferenciaLine(s)+(infoS?'<div class="otime" style="margin-top:4px;">'+infoS+'</div>':'')+prendasTxt+extra+'<div class="ofoot" style="margin-top:6px;"><span class="st '+stClass(s.estado)+'">'+stLabel(s.estado)+'</span><div style="display:flex;gap:6px;flex-wrap:wrap;">'+botonesPara(s)+'</div></div></div>';}).join('');}
 function exportarPedidosCliente(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}var list=filtrarPedidosCliente();if(!list.length){showToast('⚠️ No hay pedidos en ese filtro','error');return;}var data=buildServiciosRows(list);var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Pedidos');XLSX.writeFile(wb,'pedidos_cliente_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
 
-// ===== CAMBIO ÚNICO: fechaRecogidaInfo con prioridad tsRecogido =====
+// ===== CAMBIO 2: fechaRecogidaInfo con prioridad tsRecogido =====
 function fechaRecogidaInfo(servicioId){
     var s=servicioPorId(servicioId);
     // 1º Timestamp del botón "Recoger" (fecha REAL)
