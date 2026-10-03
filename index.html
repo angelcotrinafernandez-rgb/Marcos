@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-10-02-L35-FACT-V5 -->
+<!-- VERSION: LAV-2026-10-02-L35-FACT-V6 -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
 <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
 <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-<div class="otime" style="margin-top:8px;">Versión: LAV-2026-10-02 L35-FACT-V5</div>
+<div class="otime" style="margin-top:8px;">Versión: LAV-2026-10-02 L35-FACT-V6</div>
 <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
 </div>
 </div>
@@ -339,8 +339,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <button class="btn btn-gold btn-block" onclick="adminGenerarFM()">👁️ Previsualizar factura</button>
 </div>
 <div class="card">
-<h3>➕ Factura Manual</h3>
-<div class="otime" style="margin-bottom:10px;">Abre una ventana aislada para crear facturas manualmente. Puedes vincular a servicios huérfanos o pendientes según su fecha de recogida.</div>
+<h3>➕ Factura Manual (por periodo)</h3>
+<div class="otime" style="margin-bottom:10px;">Selecciona un cliente y un rango de fechas. Se listarán todos sus servicios con fecha de recogida en ese periodo para facturarlos juntos en UNA sola factura.</div>
 <button class="btn btn-purple btn-block" onclick="abrirFacturaManual()">➕ Abrir Factura Manual</button>
 </div>
 <div class="card">
@@ -705,7 +705,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L35-FACT-V5';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L35-FACT-V6';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -831,12 +831,431 @@ function restaurarFactura(fid){if(!requireFB()) return;var f=facturaPorId(fid);i
 function toggleAnuladas(){var wrap=document.getElementById('facturasAnuladasWrap');if(!wrap)return;mostrarAnuladas=!mostrarAnuladas;if(mostrarAnuladas){wrap.classList.remove('hidden');renderFacturasAnuladas();}else{wrap.classList.add('hidden');}}
 function renderFacturasAnuladas(){var box=document.getElementById('facturasAnuladasList');if(!box)return;var anuladas=facturas.filter(function(f){return f.estado==='ANULADA';});if(!anuladas.length){box.innerHTML='<div class="empty">No hay facturas anuladas</div>';return;}box.innerHTML=anuladas.map(function(f){var acciones=role==='admin'?'<button class="btn btn-green btn-sm" onclick="restaurarFactura(\''+f.id+'\')">♻️ Restaurar</button>':'';return '<div class="alertrow anulada" style="flex-wrap:wrap;"><div style="flex:1;"><b>'+esc(f.numero||'S/N')+'</b> · '+esc(f.clienteNombre||'')+'<div class="otime">'+esc(f.fecha||'')+' · '+f.kg+' kg · '+fp(f.total)+'</div></div>'+acciones+'</div>';}).join('');}
 
-// CAMBIO: Factura manual con selector ampliado de servicios (huérfanos + pendientes por fecha de recogida)
+// ============================================================
+// CAMBIO PRINCIPAL: Factura Manual reestructurada por periodo
+// ============================================================
 function abrirFacturaManual(){
     if(role!=='admin'){showToast('⚠️ Solo admin','error');return;}
-    var ventana = window.open('', 'FacturaManual', 'width=700,height=900,scrollbars=yes,resizable=yes');
+    var ventana = window.open('', 'FacturaManualPeriodo', 'width=900,height=900,scrollbars=yes,resizable=yes');
     if(!ventana){showToast('⚠️ El navegador bloqueó la ventana emergente. Permite popups para este sitio.','error');return;}
-    var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Factura Manual</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0a0f;color:#f4f4f5;padding:20px;margin:0;} .card{background:#1a1a24;border:1px solid #2a2a38;border-radius:16px;padding:20px;margin-bottom:16px;} h2{color:#f59e0b;margin-bottom:16px;} .fld-label{font-size:13px;color:#a1a1aa;margin-bottom:4px;display:block;} .input,.textarea,select.input{width:100%;padding:12px;background:#13131a;border:1px solid #2a2a38;border-radius:8px;color:#f4f4f5;font-size:14px;margin-bottom:10px;box-sizing:border-box;} .input:focus,.textarea:focus,select.input:focus{outline:none;border-color:#f59e0b;} .btn{padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;} .btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;} .btn-grey{background:#13131a;color:#f4f4f5;border:1px solid #2a2a38;} .btn-sm{padding:6px 12px;font-size:12px;} .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;} .total-box{background:#0a0a0f;padding:12px;border-radius:8px;font-size:18px;font-weight:bold;color:#f59e0b;text-align:center;margin:10px 0;} .info{font-size:12px;color:#71717a;margin-top:4px;} .search-input{margin-bottom:6px;} .hint{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:10px;font-size:12px;color:#93c5fd;margin:8px 0;} .servicio-opt{padding:4px 0;border-bottom:1px solid #2a2a38;} .servicio-opt:last-child{border-bottom:none;} .badge-estado{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px;} .badge-sol{background:rgba(59,130,246,.2);color:#60a5fa;} .badge-rec{background:rgba(245,158,11,.2);color:#fbbf24;} .badge-pes{background:rgba(16,185,129,.2);color:#34d399;} .badge-ent{background:rgba(139,92,246,.2);color:#a78bfa;}</style></head><body><div class="card"><h2>➕ Factura Manual</h2><p class="info">Completa los datos. El número se autogenera al guardar.</p><label class="fld-label">Tipo de factura</label><select class="input" id="fmTipo"><option value="FM">FM - Mensual</option><option value="FQ">FQ - Quincenal</option><option value="FS">FS - Semanal</option></select><label class="fld-label">Periodo (YYYYMMDD o YYYYMM)</label><input class="input" type="text" id="fmPeriodo" placeholder="Ej: 20261001"/><label class="fld-label">Cliente *</label><input class="input search-input" type="text" id="fmFiltroCliente" placeholder="🔍 Escribe las primeras letras del cliente..." oninput="filtrarClientesManual()"/><select class="input" id="fmCliente" onchange="onClientChange()" size="6"></select><label class="fld-label">Fecha Factura</label><input class="input" type="date" id="fmFecha"/><div class="grid-2"><div><label class="fld-label">F. Recogida</label><input class="input" type="date" id="fmFechaRec"/></div><div><label class="fld-label">F. Pesaje</label><input class="input" type="date" id="fmFechaPes"/></div><div><label class="fld-label">F. Entrega</label><input class="input" type="date" id="fmFechaEnt"/></div><div><label class="fld-label">Kg</label><input class="input" type="number" step="0.01" id="fmKg" oninput="calcTotal()"/></div><div><label class="fld-label">Precio/kg (€)</label><input class="input" type="number" step="0.01" id="fmPrecio" oninput="calcTotal()"/></div><div><label class="fld-label">Material (€)</label><input class="input" type="number" step="0.01" id="fmMaterial" value="0" oninput="calcTotal()"/></div></div><div class="fld-label">Total Base (€) <span style="color:#f59e0b;font-size:11px;">(Auto)</span></div><div class="total-box" id="fmTotal">0,00 €</div><div class="hint">💡 <b>Vincular a servicio:</b> Aparecen los servicios huérfanos (sin factura) Y los servicios pendientes (SOLICITADO/RECOGIDO) cuya fecha de recogida real esté en el rango indicado.</div><label class="fld-label">Rango fecha de recogida (para filtrar servicios pendientes):</label><div class="grid-2"><div><input class="input" type="date" id="fmRangoDesde" style="margin-bottom:0;" onchange="actualizarServicios()"/></div><div><input class="input" type="date" id="fmRangoHasta" style="margin-bottom:0;" onchange="actualizarServicios()"/></div></div><div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;"><button class="btn btn-grey btn-sm" onclick="setRangoServicios(7)">📅 7 días</button><button class="btn btn-grey btn-sm" onclick="setRangoServicios(15)">📅 15 días</button><button class="btn btn-grey btn-sm" onclick="setRangoServicios(\'mes\')">📅 Mes</button></div><label class="fld-label">Vincular a servicio existente (Opcional)</label><select class="input" id="fmServicio" size="8"><option value="">— Ninguno (Crear servicio fantasma) —</option></select><div id="fmServicioInfo" class="info"></div><label class="fld-label">Notas</label><textarea class="textarea" id="fmNotas" rows="3" placeholder="Notas opcionales..."></textarea><div style="margin-top:16px;"><button class="btn btn-gold" onclick="guardar()">💾 Crear Factura</button><button class="btn btn-grey" onclick="window.close()">Cancelar</button></div></div><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"><\/script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"><\/script><script>var firebaseConfig='+JSON.stringify(firebaseConfig)+';var db, clientes=[], servicios=[], clientesFiltrados=[], albaranes=[];firebase.initializeApp(firebaseConfig);db = firebase.database();Promise.all([db.ref("clientes").once("value"),db.ref("servicios").once("value"),db.ref("albaranes").once("value")]).then(function(snapshots){var cdata = snapshots[0].val() || {};clientes = Object.keys(cdata).map(function(k){var o=cdata[k];o.id=k;return o;});clientes.sort(function(a,b){return String(a.nombre||"").localeCompare(String(b.nombre||""));});clientesFiltrados=clientes.slice();renderClientes();var sdata = snapshots[1].val() || {};servicios = Object.keys(sdata).map(function(k){var o=sdata[k];o.id=k;return o;});var adata = snapshots[2].val() || {};albaranes = Object.keys(adata||{}).map(function(k){var o=adata[k];o.id=k;return o;});actualizarServicios();}).catch(function(e){alert("Error cargando datos: "+e.message);});var hoy=new Date();document.getElementById("fmFecha").value = hoy.toISOString().split("T")[0];document.getElementById("fmPeriodo").value = hoy.getFullYear()+""+String(hoy.getMonth()+1).padStart(2,"0")+""+String(hoy.getDate()).padStart(2,"0");var hace7=new Date();hace7.setDate(hoy.getDate()-7);document.getElementById("fmRangoDesde").value = hace7.toISOString().split("T")[0];document.getElementById("fmRangoHasta").value = hoy.toISOString().split("T")[0];function obtenerFechaRecogidaReal(s){if(s.tsRecogido) return s.tsRecogido;for(var i=0;i<albaranes.length;i++){if(albaranes[i].servicioId===s.id && albaranes[i].tipo==="recogida" && albaranes[i].fecha){return albaranes[i].fecha;}}if(s.fechaRecogida){var p=String(s.fechaRecogida).split("-");if(p.length===3) return new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();}return null;}function setRangoServicios(rango){var hoy=new Date();var desde=new Date();if(rango==="mes"){desde=new Date(hoy.getFullYear(),hoy.getMonth(),1);}else{desde.setDate(hoy.getDate()-rango);}document.getElementById("fmRangoDesde").value=desde.toISOString().split("T")[0];document.getElementById("fmRangoHasta").value=hoy.toISOString().split("T")[0];actualizarServicios();}function actualizarServicios(){var sel=document.getElementById("fmServicio");var info=document.getElementById("fmServicioInfo");if(!sel)return;var desdeStr=document.getElementById("fmRangoDesde").value;var hastaStr=document.getElementById("fmRangoHasta").value;var desdeTime=desdeStr?new Date(desdeStr+"T00:00:00").getTime():0;var hastaTime=hastaStr?new Date(hastaStr+"T23:59:59").getTime():Infinity;var huérfanos=[];var pendientes=[];servicios.forEach(function(s){if(["PESADO","ENTREGADO"].indexOf(s.estado)!==-1 && !s.facturaId){huérfanos.push({tipo:"huerfano",s:s});}else if(["SOLICITADO","RECOGIDO"].indexOf(s.estado)!==-1){var fr=obtenerFechaRecogidaReal(s);if(fr && fr>=desdeTime && fr<=hastaTime){pendientes.push({tipo:"pendiente",s:s,fechaRec:fr});}}});var html=\'<option value="">— Ninguno (Crear servicio fantasma) —\';if(huérfanos.length){html+=\'<optgroup label="⚖️ Huérfanos (PESADO/ENTREGADO sin factura) - \'+huérfanos.length+\'">\';huérfanos.forEach(function(h){var badge=h.s.estado==="PESADO"?\'<span class="badge-estado badge-pes">PESADO</span>\':\'<span class="badge-estado badge-ent">ENTREGADO</span>\';var kgTxt=h.s.kg?\' · \'+h.s.kg+\' kg\':\'\';html+=\'<option value="\'+h.s.id+\'">\'+badge+\' \'+(h.s.clienteNombre||"Sin nombre")+kgTxt+\'</option>\';});html+=\'</optgroup>\';}if(pendientes.length){html+=\'<optgroup label="📅 Pendientes por fecha de recogida - \'+pendientes.length+\'">\';pendientes.sort(function(a,b){return a.fechaRec-b.fechaRec;});pendientes.forEach(function(p){var badge=p.s.estado==="SOLICITADO"?\'<span class="badge-estado badge-sol">SOLICITADO</span>\':\'<span class="badge-estado badge-rec">RECOGIDO</span>\';var fechaFmt=new Date(p.fechaRec).toLocaleDateString("es-ES");var kgTxt=p.s.pesoCliente?p.s.pesoCliente+" kg":"—";html+=\'<option value="\'+p.s.id+\'">\'+badge+\' \'+(p.s.clienteNombre||"Sin nombre")+\' · \'+fechaFmt+\' · \'+kgTxt+\'</option>\';});html+=\'</optgroup>\';}sel.innerHTML=html;var total=huérfanos.length+pendientes.length;if(info){if(total===0){info.textContent=\'⚠️ No hay servicios disponibles para vincular en este rango.\';}else{info.textContent=\'✅ \'+huérfanos.length+\' huérfano(s) + \'+pendientes.length+\' pendiente(s) = \'+total+\' servicio(s) disponible(s)\';}}}function renderClientes(){var sel=document.getElementById("fmCliente");sel.innerHTML=clientesFiltrados.map(function(c){return "<option value=\\""+c.id+"\\">"+(c.nombreComercial||c.nombre||"Sin nombre")+(c.nif?" ("+c.nif+")":"")+"</option>";}).join("");}function filtrarClientesManual(){var q=document.getElementById("fmFiltroCliente").value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").trim();clientesFiltrados=clientes.filter(function(c){var hay=(c.nombre||"")+" "+(c.nombreComercial||"");var hayNif=c.nif||"";return hay.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").indexOf(q)!==-1 || hayNif.toLowerCase().replace(/[^0-9]/g,"").indexOf(q.replace(/[^0-9]/g,""))!==-1;});renderClientes();}function onClientChange(){var cid = document.getElementById("fmCliente").value;if(!cid){document.getElementById("fmPrecio").value="";calcTotal();return;}var c = clientes.find(function(x){return x.id===cid;});if(c){document.getElementById("fmPrecio").value = c.precioKilo||0;calcTotal();}}function calcTotal(){var kg = parseFloat(document.getElementById("fmKg").value)||0;var precio = parseFloat(document.getElementById("fmPrecio").value)||0;var mat = parseFloat(document.getElementById("fmMaterial").value)||0;var total = (kg*precio)+mat;document.getElementById("fmTotal").textContent = total.toFixed(2).replace(".",",")+" €";}function guardar(){var tipo=document.getElementById("fmTipo").value;var periodo=document.getElementById("fmPeriodo").value;var cid = document.getElementById("fmCliente").value;var kg = parseFloat(document.getElementById("fmKg").value);var precio = parseFloat(document.getElementById("fmPrecio").value);var mat = parseFloat(document.getElementById("fmMaterial").value)||0;var fecha = document.getElementById("fmFecha").value;var fechaPes = document.getElementById("fmFechaPes").value;var fechaEnt = document.getElementById("fmFechaEnt").value;var notas = document.getElementById("fmNotas").value.trim();var sid = document.getElementById("fmServicio").value;if(!cid){alert("⚠️ Elige un cliente");return;}if(!periodo){alert("⚠️ Elige un periodo");return;}if(!kg||kg<=0){alert("⚠️ Kg no válidos");return;}var total = (kg*precio)+mat;if(total<=0){alert("⚠️ Total no válido");return;}var c = clientes.find(function(x){return x.id===cid;});if(!c){alert("⚠️ Cliente no encontrado");return;}var servicioVinculado = sid ? servicios.find(function(s){return s.id===sid;}) : null;var key="config/contadorFactura"+tipo;db.ref(key).transaction(function(cur){return (cur||0)+1;}, function(err, committed, snap){if(err||!committed){alert("❌ Error al numerar");return;}var n = snap.val();var num = tipo+"-"+periodo+"-"+String(n).padStart(4,"0");var d = new Date(fecha?fecha+"T12:00:00":Date.now());var fechaISO = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");var hora = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");var facturaData = {numero:num,tipo:tipo,periodo:periodo,fecha:fechaISO,hora:hora,timestamp:d.getTime(),clienteId:cid,clienteNombre:c.nombreComercial||c.nombre,kg:kg,precioKilo:precio,base:Math.round((kg*precio)*100)/100,materialImporte:mat,materialDesc:notas,total:total,servicioId:sid||null,esManual:true};var ops = [db.ref("facturas/"+db.ref().push().key).set(facturaData)];if(servicioVinculado){var updServ = {facturaId:num};if(servicioVinculado.estado==="PESADO" || servicioVinculado.estado==="ENTREGADO"){updServ.kg=kg;updServ.total=total;updServ.precioKilo=precio;updServ.importeMaterial=mat;updServ.notaMaterial=notas;}if(fechaPes) updServ.tsPesado = new Date(fechaPes+"T12:00:00").getTime();if(fechaEnt) updServ.tsEntregado = new Date(fechaEnt+"T12:00:00").getTime();ops.push(db.ref("servicios/"+sid).update(updServ));} else {var ghostId = db.ref().push().key;var ghostServ = {clienteId:cid,clienteNombre:c.nombreComercial||c.nombre,nota:notas||"Factura manual",estado:"ENTREGADO",kg:kg,precioKilo:precio,total:total,importeMaterial:mat,materialEspecial:notas,facturaId:num,tsPesado:fechaPes?new Date(fechaPes+"T12:00:00").getTime():d.getTime(),tsEntregado:fechaEnt?new Date(fechaEnt+"T12:00:00").getTime():d.getTime(),createdAtLocal:d.getTime(),updatedAtLocal:Date.now(),esManual:true};ops.push(db.ref("servicios/"+ghostId).set(ghostServ));}Promise.all(ops).then(function(){alert("✅ Factura manual creada: "+num);if(window.opener && !window.opener.closed){window.opener.location.reload();}window.close();}).catch(function(e){alert("❌ Error: "+e.message);});});}<\/script></body></html>';
+    
+    var html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Factura Manual por Periodo</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0a0f;color:#f4f4f5;padding:20px;margin:0;}
+.card{background:#1a1a24;border:1px solid #2a2a38;border-radius:16px;padding:20px;margin-bottom:16px;}
+h2{color:#f59e0b;margin-bottom:16px;}
+h3{color:#f59e0b;margin:16px 0 10px;font-size:16px;}
+.fld-label{font-size:13px;color:#a1a1aa;margin-bottom:4px;display:block;}
+.input,select.input{width:100%;padding:12px;background:#13131a;border:1px solid #2a2a38;border-radius:8px;color:#f4f4f5;font-size:14px;margin-bottom:10px;box-sizing:border-box;}
+.input:focus,select.input:focus{outline:none;border-color:#f59e0b;}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px;}
+.btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;}
+.btn-grey{background:#13131a;color:#f4f4f5;border:1px solid #2a2a38;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.total-box{background:#0a0a0f;padding:12px;border-radius:8px;font-size:18px;font-weight:bold;color:#f59e0b;text-align:center;margin:10px 0;}
+.info{font-size:12px;color:#71717a;margin-top:4px;}
+.hint{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:10px;font-size:12px;color:#93c5fd;margin:8px 0;}
+.servicios-list{max-height:400px;overflow-y:auto;border:1px solid #2a2a38;border-radius:8px;padding:8px;margin-top:8px;}
+.servicio-item{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #2a2a38;}
+.servicio-item:last-child{border-bottom:none;}
+.servicio-item input[type="checkbox"]{width:20px;height:20px;cursor:pointer;}
+.servicio-info{flex:1;font-size:13px;}
+.servicio-info b{color:#f59e0b;}
+.badge-estado{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:6px;}
+.badge-sol{background:rgba(59,130,246,.2);color:#60a5fa;}
+.badge-rec{background:rgba(245,158,11,.2);color:#fbbf24;}
+.badge-pes{background:rgba(16,185,129,.2);color:#34d399;}
+.badge-ent{background:rgba(139,92,246,.2);color:#a78bfa;}
+.empty{padding:20px;text-align:center;color:#71717a;font-size:13px;}
+.totales-resumen{background:linear-gradient(135deg,rgba(245,158,11,.1),#13131a);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px;margin:12px 0;}
+.totales-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}
+.totales-row.total{font-size:16px;font-weight:800;color:#f59e0b;border-top:1px solid #2a2a38;padding-top:8px;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>➕ Factura Manual por Periodo</h2>
+<p class="info">Selecciona un cliente y un rango de fechas. Se listarán todos sus servicios con fecha de recogida en ese periodo para facturarlos juntos.</p>
+
+<h3>📋 Datos de la factura</h3>
+<div class="grid-2">
+<div>
+<label class="fld-label">Tipo de factura</label>
+<select class="input" id="fmTipo">
+<option value="FM">FM - Mensual</option>
+<option value="FQ">FQ - Quincenal</option>
+<option value="FS">FS - Semanal</option>
+</select>
+</div>
+<div>
+<label class="fld-label">Periodo (ej: 202610 o 20261001)</label>
+<input class="input" type="text" id="fmPeriodo" placeholder="Ej: 202610"/>
+</div>
+</div>
+
+<label class="fld-label">Cliente *</label>
+<input class="input" type="text" id="fmFiltroCliente" placeholder="🔍 Escribe las primeras letras del cliente..." oninput="filtrarClientesManual()"/>
+<select class="input" id="fmCliente" onchange="onClientChange()" size="5"></select>
+
+<label class="fld-label">Fecha de la factura</label>
+<input class="input" type="date" id="fmFecha"/>
+
+<h3>📅 Rango de fecha de recogida</h3>
+<div class="grid-2">
+<div>
+<label class="fld-label">Desde:</label>
+<input class="input" type="date" id="fmRangoDesde" onchange="actualizarServicios()"/>
+</div>
+<div>
+<label class="fld-label">Hasta:</label>
+<input class="input" type="date" id="fmRangoHasta" onchange="actualizarServicios()"/>
+</div>
+</div>
+<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+<button class="btn btn-grey btn-sm" onclick="setRango(7)">📅 7 días</button>
+<button class="btn btn-grey btn-sm" onclick="setRango(15)">📅 15 días</button>
+<button class="btn btn-grey btn-sm" onclick="setRango('mes')">📅 Mes actual</button>
+</div>
+
+<div class="hint">💡 Se mostrarán todos los servicios del cliente cuya <b>fecha de recogida real</b> esté en el rango seleccionado, incluyendo SOLICITADO, RECOGIDO, PESADO y ENTREGADO sin factura.</div>
+
+<h3>📋 Servicios disponibles (<span id="servCount">0</span>)</h3>
+<div style="display:flex;gap:6px;margin-bottom:8px;">
+<button class="btn btn-grey btn-sm" onclick="seleccionarTodos()">✅ Todos</button>
+<button class="btn btn-grey btn-sm" onclick="seleccionarNinguno()">✕ Ninguno</button>
+</div>
+<div class="servicios-list" id="serviciosList">
+<div class="empty">Selecciona un cliente y un rango de fechas para ver los servicios disponibles.</div>
+</div>
+
+<div class="totales-resumen" id="totalesResumen" style="display:none;">
+<div class="totales-row"><span>Servicios seleccionados:</span><span id="tSelCount">0</span></div>
+<div class="totales-row"><span>Total kg:</span><span id="tTotalKg">0,00 kg</span></div>
+<div class="totales-row"><span>Base imponible:</span><span id="tBase">0,00 €</span></div>
+<div class="totales-row"><span>IGIC (7%):</span><span id="tIgic">0,00 €</span></div>
+<div class="totales-row total"><span>TOTAL A FACTURAR:</span><span id="tTotal">0,00 €</span></div>
+</div>
+
+<label class="fld-label">Notas de la factura (opcional)</label>
+<input class="input" type="text" id="fmNotas" placeholder="Ej: Factura mensual octubre 2026"/>
+
+<div style="margin-top:16px;display:flex;gap:10px;">
+<button class="btn btn-gold" onclick="guardar()" style="flex:1;">💾 Crear Factura</button>
+<button class="btn btn-grey" onclick="window.close()">Cancelar</button>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"><\/script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"><\/script>
+<script>
+var firebaseConfig=${JSON.stringify(firebaseConfig)};
+var db, clientes=[], servicios=[], albaranes=[], clientesFiltrados=[];
+var serviciosFiltrados=[];
+
+firebase.initializeApp(firebaseConfig);
+db = firebase.database();
+
+// Cargar todos los datos necesarios
+Promise.all([
+    db.ref("clientes").once("value"),
+    db.ref("servicios").once("value"),
+    db.ref("albaranes").once("value")
+]).then(function(snapshots){
+    var cdata = snapshots[0].val() || {};
+    clientes = Object.keys(cdata).map(function(k){var o=cdata[k];o.id=k;return o;});
+    clientes.sort(function(a,b){return String(a.nombre||"").localeCompare(String(b.nombre||""));});
+    clientesFiltrados=clientes.slice();
+    renderClientes();
+    
+    var sdata = snapshots[1].val() || {};
+    servicios = Object.keys(sdata).map(function(k){var o=sdata[k];o.id=k;return o;});
+    
+    var adata = snapshots[2].val() || {};
+    albaranes = Object.keys(adata||{}).map(function(k){var o=adata[k];o.id=k;return o;});
+}).catch(function(e){alert("Error cargando datos: "+e.message);});
+
+// Inicializar fechas
+var hoy=new Date();
+document.getElementById("fmFecha").value = hoy.toISOString().split("T")[0];
+document.getElementById("fmPeriodo").value = hoy.getFullYear()+""+String(hoy.getMonth()+1).padStart(2,"0");
+setRango('mes');
+
+function obtenerFechaRecogidaReal(s){
+    if(s.tsRecogido) return s.tsRecogido;
+    for(var i=0;i<albaranes.length;i++){
+        if(albaranes[i].servicioId===s.id && albaranes[i].tipo==="recogida" && albaranes[i].fecha){
+            return albaranes[i].fecha;
+        }
+    }
+    if(s.fechaRecogida){
+        var p=String(s.fechaRecogida).split("-");
+        if(p.length===3) return new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10)).getTime();
+    }
+    return null;
+}
+
+function setRango(rango){
+    var hoy=new Date();
+    var desde=new Date();
+    if(rango==='mes'){
+        desde = new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    } else {
+        desde.setDate(hoy.getDate()-rango);
+    }
+    document.getElementById("fmRangoDesde").value = desde.toISOString().split("T")[0];
+    document.getElementById("fmRangoHasta").value = hoy.toISOString().split("T")[0];
+    actualizarServicios();
+}
+
+function renderClientes(){
+    var sel=document.getElementById("fmCliente");
+    sel.innerHTML=clientesFiltrados.map(function(c){
+        return '<option value="'+c.id+'">'+(c.nombreComercial||c.nombre||"Sin nombre")+(c.nif?" ("+c.nif+")":"")+'</option>';
+    }).join("");
+}
+
+function filtrarClientesManual(){
+    var q=document.getElementById("fmFiltroCliente").value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").trim();
+    clientesFiltrados=clientes.filter(function(c){
+        var hay=(c.nombre||"")+" "+(c.nombreComercial||"");
+        var hayNif=c.nif||"";
+        return hay.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").indexOf(q)!==-1 || 
+               hayNif.toLowerCase().replace(/[^0-9]/g,"").indexOf(q.replace(/[^0-9]/g,""))!==-1;
+    });
+    renderClientes();
+}
+
+function onClientChange(){
+    actualizarServicios();
+}
+
+function actualizarServicios(){
+    var cid = document.getElementById("fmCliente").value;
+    var desdeStr = document.getElementById("fmRangoDesde").value;
+    var hastaStr = document.getElementById("fmRangoHasta").value;
+    var listDiv = document.getElementById("serviciosList");
+    var countSpan = document.getElementById("servCount");
+    
+    if(!cid || !desdeStr || !hastaStr){
+        listDiv.innerHTML='<div class="empty">Selecciona un cliente y un rango de fechas.</div>';
+        countSpan.textContent='0';
+        serviciosFiltrados=[];
+        actualizarTotales();
+        return;
+    }
+    
+    var desdeTime = new Date(desdeStr+"T00:00:00").getTime();
+    var hastaTime = new Date(hastaStr+"T23:59:59").getTime();
+    
+    // Filtrar servicios del cliente con fecha de recogida en el rango
+    serviciosFiltrados = servicios.filter(function(s){
+        if(s.clienteId !== cid) return false;
+        // Incluir SOLICITADO, RECOGIDO, PESADO, ENTREGADO (sin CANCELADO)
+        if(s.estado === 'CANCELADO') return false;
+        // Excluir los que ya tienen factura
+        if(s.facturaId) return false;
+        
+        var fechaRec = obtenerFechaRecogidaReal(s);
+        if(!fechaRec) return false;
+        return fechaRec >= desdeTime && fechaRec <= hastaTime;
+    }).sort(function(a,b){
+        var fa = obtenerFechaRecogidaReal(a);
+        var fb = obtenerFechaRecogidaReal(b);
+        return fa - fb;
+    });
+    
+    countSpan.textContent = serviciosFiltrados.length;
+    
+    if(serviciosFiltrados.length === 0){
+        listDiv.innerHTML='<div class="empty">⚠️ No hay servicios de este cliente con fecha de recogida en el rango seleccionado.</div>';
+        actualizarTotales();
+        return;
+    }
+    
+    var html = '';
+    serviciosFiltrados.forEach(function(s, idx){
+        var fechaRec = obtenerFechaRecogidaReal(s);
+        var fechaFmt = new Date(fechaRec).toLocaleDateString("es-ES");
+        var estadoBadge = '';
+        if(s.estado==='SOLICITADO') estadoBadge='<span class="badge-estado badge-sol">📥 SOLICITADO</span>';
+        else if(s.estado==='RECOGIDO') estadoBadge='<span class="badge-estado badge-rec">🚚 RECOGIDO</span>';
+        else if(s.estado==='PESADO') estadoBadge='<span class="badge-estado badge-pes">⚖️ PESADO</span>';
+        else if(s.estado==='ENTREGADO') estadoBadge='<span class="badge-estado badge-ent">📦 ENTREGADO</span>';
+        
+        var kgTxt = s.kg ? s.kg+' kg' : (s.pesoCliente ? s.pesoCliente+' kg (declarado)' : '— kg');
+        var totalTxt = s.total ? Number(s.total).toFixed(2)+' €' : '—';
+        var notaTxt = s.nota ? ' · 📝 '+s.nota.substring(0,50) : '';
+        
+        html += '<div class="servicio-item">';
+        html += '<input type="checkbox" class="servicio-check" data-idx="'+idx+'" onchange="actualizarTotales()" checked/>';
+        html += '<div class="servicio-info">';
+        html += estadoBadge;
+        html += '<b>📅 '+fechaFmt+'</b> · ⚖️ '+kgTxt+' · 💰 '+totalTxt;
+        if(notaTxt) html += '<div style="color:#71717a;font-size:11px;margin-top:2px;">'+notaTxt+'</div>';
+        html += '</div></div>';
+    });
+    
+    listDiv.innerHTML = html;
+    actualizarTotales();
+}
+
+function seleccionarTodos(){
+    document.querySelectorAll('.servicio-check').forEach(function(cb){cb.checked=true;});
+    actualizarTotales();
+}
+
+function seleccionarNinguno(){
+    document.querySelectorAll('.servicio-check').forEach(function(cb){cb.checked=false;});
+    actualizarTotales();
+}
+
+function actualizarTotales(){
+    var totalKg=0, totalBase=0, totalMat=0, totalSum=0, count=0;
+    var precioKilo = 0;
+    var cid = document.getElementById("fmCliente").value;
+    var c = clientes.find(function(x){return x.id===cid;});
+    if(c) precioKilo = Number(c.precioKilo)||0;
+    
+    document.querySelectorAll('.servicio-check').forEach(function(cb){
+        if(cb.checked){
+            var idx = parseInt(cb.getAttribute('data-idx'));
+            var s = serviciosFiltrados[idx];
+            if(s){
+                var kg = Number(s.kg)||Number(s.pesoCliente)||0;
+                totalKg += kg;
+                var baseServ = kg * precioKilo;
+                var matServ = Number(s.importeMaterial)||0;
+                totalBase += baseServ;
+                totalMat += matServ;
+                totalSum += baseServ + matServ;
+                count++;
+            }
+        }
+    });
+    
+    var resumen = document.getElementById("totalesResumen");
+    if(count>0){
+        resumen.style.display='block';
+        var igic = Math.round(totalBase*0.07*100)/100;
+        var totalConIgic = Math.round((totalBase+igic+totalMat)*100)/100;
+        document.getElementById("tSelCount").textContent = count;
+        document.getElementById("tTotalKg").textContent = totalKg.toFixed(2)+' kg';
+        document.getElementById("tBase").textContent = totalBase.toFixed(2)+' €';
+        document.getElementById("tIgic").textContent = igic.toFixed(2)+' €';
+        document.getElementById("tTotal").textContent = totalConIgic.toFixed(2)+' €';
+    } else {
+        resumen.style.display='none';
+    }
+}
+
+function guardar(){
+    var tipo = document.getElementById("fmTipo").value;
+    var periodo = document.getElementById("fmPeriodo").value;
+    var cid = document.getElementById("fmCliente").value;
+    var fecha = document.getElementById("fmFecha").value;
+    var notas = document.getElementById("fmNotas").value.trim();
+    
+    if(!cid){alert("⚠️ Elige un cliente");return;}
+    if(!periodo){alert("⚠️ Indica el periodo");return;}
+    
+    // Recoger servicios seleccionados
+    var seleccionados = [];
+    document.querySelectorAll('.servicio-check').forEach(function(cb){
+        if(cb.checked){
+            var idx = parseInt(cb.getAttribute('data-idx'));
+            seleccionados.push(serviciosFiltrados[idx]);
+        }
+    });
+    
+    if(seleccionados.length===0){
+        alert("⚠️ Selecciona al menos un servicio para facturar");
+        return;
+    }
+    
+    var c = clientes.find(function(x){return x.id===cid;});
+    if(!c){alert("⚠️ Cliente no encontrado");return;}
+    
+    var precioKilo = Number(c.precioKilo)||0;
+    
+    // Calcular totales
+    var totalKg=0, totalBase=0, totalMat=0;
+    seleccionados.forEach(function(s){
+        var kg = Number(s.kg)||Number(s.pesoCliente)||0;
+        totalKg += kg;
+        totalBase += kg * precioKilo;
+        totalMat += Number(s.importeMaterial)||0;
+    });
+    var igic = Math.round(totalBase*0.07*100)/100;
+    var total = Math.round((totalBase+igic+totalMat)*100)/100;
+    
+    // Generar número de factura
+    var key="config/contadorFactura"+tipo;
+    db.ref(key).transaction(function(cur){return (cur||0)+1;}, function(err, committed, snap){
+        if(err||!committed){alert("❌ Error al numerar");return;}
+        var n = snap.val();
+        var num = tipo+"-"+periodo+"-"+String(n).padStart(4,"0");
+        var d = new Date(fecha?fecha+"T12:00:00":Date.now());
+        var fechaISO = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+        var hora = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+        
+        // Crear la factura principal
+        var facturaData = {
+            numero:num,
+            tipo:tipo,
+            periodo:periodo,
+            fecha:fechaISO,
+            hora:hora,
+            timestamp:d.getTime(),
+            clienteId:cid,
+            clienteNombre:c.nombreComercial||c.nombre,
+            kg:totalKg,
+            precioKilo:precioKilo,
+            base:Math.round(totalBase*100)/100,
+            materialImporte:totalMat,
+            materialDesc:notas,
+            total:total,
+            serviciosIds: seleccionados.map(function(s){return s.id;}),
+            numServicios: seleccionados.length,
+            esManual:true,
+            notas:notas
+        };
+        
+        var ops = [db.ref("facturas/"+db.ref().push().key).set(facturaData)];
+        
+        // Vincular cada servicio a la factura
+        seleccionados.forEach(function(s){
+            var updServ = {facturaId:num};
+            // Si el servicio ya tiene kg (PESADO/ENTREGADO), actualizar total
+            if(s.estado==='PESADO' || s.estado==='ENTREGADO'){
+                updServ.kg = Number(s.kg)||0;
+                updServ.precioKilo = precioKilo;
+                var baseServ = (Number(s.kg)||0) * precioKilo;
+                var matServ = Number(s.importeMaterial)||0;
+                updServ.total = Math.round((baseServ+matServ)*100)/100;
+            }
+            ops.push(db.ref("servicios/"+s.id).update(updServ));
+        });
+        
+        Promise.all(ops).then(function(){
+            alert("✅ Factura "+num+" creada con "+seleccionados.length+" servicio(s)\\n\\nTotal: "+total.toFixed(2)+" €\\nKg: "+totalKg.toFixed(2)+" kg");
+            if(window.opener && !window.opener.closed){
+                window.opener.location.reload();
+            }
+            window.close();
+        }).catch(function(e){
+            alert("❌ Error: "+e.message);
+        });
+    });
+}
+<\/script>
+</body>
+</html>`;
+    
     ventana.document.write(html);
     ventana.document.close();
 }
