@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>LavaExpressCanarias, S.L.U.</title>
-<!-- VERSION: LAV-2026-10-03-L35-FACT-V9-FINAL-ALBARAN -->
+<!-- VERSION: LAV-2026-10-03-L35-FACT-V9-FINAL-FIX -->
 <style>
 :root{--bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:#2a2a38;--t1:#f4f4f5;--t2:#a1a1aa;--t3:#71717a;--gold:#f59e0b;--green:#10b981;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-s
 <div id="syncInfo" class="otime" style="margin-bottom:10px;"></div>
 <button class="btn btn-grey btn-sm" onclick="probeSync()">📡 Probar sincronización</button>
 <div id="lastProbe" class="otime" style="margin-top:8px;"></div>
-<div class="otime" style="margin-top:8px;">Versión: LAV-2026-10-03 L35-FACT-V9-FINAL-ALBARAN</div>
+<div class="otime" style="margin-top:8px;">Versión: LAV-2026-10-03 L35-FACT-V9-FINAL-FIX</div>
 <div id="debugPanel" class="debug-panel hidden"><div class="debug-line">Iniciando...</div></div>
 </div>
 </div>
@@ -704,7 +704,7 @@ function isStaff(){return role==='lavanderia'||esAdminOGerencia();}
 function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(function(){e.className='toast';},3000);}
 function ymOf(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
 function monthLabel(ym){var p=ym.split('-');var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return meses[parseInt(p[1],10)-1]+' '+p[0];}
-function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L35-FACT-V9-FINAL-ALBARAN';}
+function updateSyncInfo(){var e=document.getElementById('syncInfo');if(!e)return;var conn=document.getElementById('cTxt');e.textContent='Rol: '+role+' · Dispositivo: '+deviceId.slice(0,8)+' · Conexión: '+(conn?conn.textContent:'?')+' · Versión LAV-L35-FACT-V9-FINAL-FIX';}
 function probeSync(){if(!requireFB())return;db.ref('syncProbe/'+deviceId).set({t:Date.now(),role:role}).then(function(){showToast('📡 Sonda enviada','success');}).catch(function(e){syncFail(e.message);});}
 function listenProbe(){if(!requireFB())return;db.ref('syncProbe').on('value',function(s){var d=s.val()||{};var best=null,bestDev=null;Object.keys(d).forEach(function(k){var v=d[k];if(v&&v.t&&(!best||v.t>best)){best=v.t;bestDev=k;}});var e=document.getElementById('lastProbe');if(!e)return;if(!best){e.textContent='Sin sondas todavía.';return;}var mine=(bestDev===deviceId);e.textContent='Última sonda: '+ftime(best)+' · rol '+(d[bestDev].role||'?')+' · '+(mine?'ESTE dispositivo':'OTRO dispositivo ✅');},function(err){syncFail(err.message);});}
 function beep(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();var n=audioCtx.currentTime;[0,.22,.44].forEach(function(t){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,n+t);g.gain.exponentialRampToValueAtTime(.5,n+t+.02);g.gain.exponentialRampToValueAtTime(.0001,n+t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(n+t);o.stop(n+t+.2);});}catch(e){}}
@@ -898,8 +898,8 @@ function descargarFacturaIndividualPDF(fid){
         servicios.forEach(function(s){if(s.facturaId===f.numero) serviciosFactura.push(s);});
     }
     serviciosFactura.sort(function(a,b){
-        var fa=obtenerFechaRecogidaReal(a)||a.createdAtLocal||0;
-        var fb=obtenerFechaRecogidaReal(b)||b.createdAtLocal||0;
+        var fa=fechaRecogidaCascada(a)||a.createdAtLocal||0;
+        var fb=fechaRecogidaCascada(b)||b.createdAtLocal||0;
         return fa-fb;
     });
     var jsPDF=window.jspdf.jsPDF;
@@ -1038,6 +1038,10 @@ function adminGenerarFM(){var selModo=document.getElementById('fmModo');var modo
 function getServiciosEnRango(clientIds, desdeStr, hastaStr){var desdeTime = new Date(desdeStr+'T00:00:00').getTime();var hastaTime = new Date(hastaStr+'T23:59:59').getTime();return servicios.filter(function(s){if(clientIds && !clientIds[s.clienteId]) return false;if(['PESADO','ENTREGADO'].indexOf(s.estado)===-1) return false;if(!(Number(s.total)||0)>0) return false;var t = obtenerFechaRecogidaReal(s) || s.tsPesado || s.createdAtLocal;return t >= desdeTime && t <= hastaTime;}).sort(function(a,b){var ta = obtenerFechaRecogidaReal(a) || a.tsPesado || a.createdAtLocal;var tb = obtenerFechaRecogidaReal(b) || b.tsPesado || b.createdAtLocal;return ta - tb;});}
 function previsualizarFacturaCliente(clientId, tipo, periodoKey, desdeStr, hastaStr){var c=clientById(clientId);if(!c){showToast('⚠️ Cliente no encontrado','error');return;}var lines = getServiciosEnRango(null, desdeStr, hastaStr).filter(function(s){return s.clienteId===clientId;});if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}previewPendiente = {modo:'cliente', tipo:tipo, periodoKey:periodoKey, desdeStr:desdeStr, hastaStr:hastaStr, lines:lines, clienteObj:c, nifAgrupado:null};mostrarPreviewFactura();}
 function previsualizarFacturaNIF(nif, tipo, periodoKey, desdeStr, hastaStr){var clientsWithNif=clientes.filter(function(c){return c.nif===nif;});if(!clientsWithNif.length){showToast('⚠️ No hay clientes con ese NIF','error');return;}var clientIds={};clientsWithNif.forEach(function(c){clientIds[c.id]=c;});var lines = getServiciosEnRango(clientIds, desdeStr, hastaStr);if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}previewPendiente = {modo:'nif', tipo:tipo, periodoKey:periodoKey, desdeStr:desdeStr, hastaStr:hastaStr, lines:lines, clienteObj:null, nifAgrupado:nif};mostrarPreviewFactura();}
+
+// ============================================================
+// CAMBIO V9-FINAL-FIX: mostrarPreviewFactura suma materiales al total
+// ============================================================
 function mostrarPreviewFactura(){
     var p = previewPendiente;if(!p) return;
     var cont = document.getElementById('fpContenido');
@@ -1069,13 +1073,16 @@ function mostrarPreviewFactura(){
         html += '<td>'+fdtShort(fR)+'</td><td>'+(s.kg||0)+'</td><td>'+Number(s.precioKilo||0).toFixed(2)+'</td><td>'+base.toFixed(2)+' €</td><td>'+(Number(s.importeMaterial)||0).toFixed(2)+' €</td><td><b>'+(Number(s.total)||0).toFixed(2)+' €</b></td><td style="font-size:11px;color:var(--t3);">'+esc(notaPlana(s))+'</td></tr>';
     });
     html += '</tbody></table>';
-    var igic=igicOf(sumBase);var totalConIgic=Math.round((sumBase+igic)*100)/100;
+    var igic=igicOf(sumBase);
+    // CAMBIO V9-FINAL-FIX: Incluir sumMat en el total
+    var totalConIgic=Math.round((sumBase+sumMat+igic)*100)/100;
     html += '<div class="preview-totals"><div class="preview-totals-row"><span>Total kg:</span><span><b>'+sumKg.toFixed(1)+' kg</b></span></div><div class="preview-totals-row"><span>Base imponible:</span><span>'+sumBase.toFixed(2)+' €</span></div>';
     if(sumMat>0) html += '<div class="preview-totals-row"><span>Material:</span><span>'+sumMat.toFixed(2)+' €</span></div>';
     html += '<div class="preview-totals-row"><span>IGIC (7%):</span><span>'+igic.toFixed(2)+' €</span></div><div class="preview-totals-row total"><span>TOTAL A PAGAR:</span><span>'+totalConIgic.toFixed(2)+' €</span></div></div>';
     cont.innerHTML = html;
     document.getElementById('facturaPreviewModal').classList.remove('hidden');
 }
+
 function cerrarPreviewFactura(){document.getElementById('facturaPreviewModal').classList.add('hidden');previewPendiente = null;}
 function editarPreviewFactura(){document.getElementById('facturaPreviewModal').classList.add('hidden');showToast('📝 Puedes modificar los datos y volver a previsualizar','success');}
 function confirmarGeneracionPDF(){
@@ -1101,18 +1108,18 @@ function ensureFacturaMensual(clientId, tipo, periodoKey, cb){var key=clientId+'
 function buildPDF(c, tipo, periodoKey, desdeStr, hastaStr, lines, rec){var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();doc.setFontSize(14);doc.text(empresa.nombre||'',14,18);doc.setFontSize(9);doc.text('NIF: '+(empresa.nif||''),14,24);doc.text(empresa.direccion||'',14,29);doc.setFontSize(11);doc.text('Factura '+tipo+' de servicios',14,38);doc.setFontSize(10);doc.text('Nº factura: '+rec.numero,14,46);doc.text('Periodo: Del '+fmtFecha(desdeStr)+' al '+fmtFecha(hastaStr),14,52);doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);doc.text('Cliente: '+(c.nombre||''),14,66);var cy=72;if(c.nombreComercial){doc.text('Comercial: '+c.nombreComercial,14,cy);cy+=6;}if(c.nif){doc.text('NIF/CIF: '+c.nif,14,cy);cy+=6;}var body=lines.map(function(s){var base=(Number(s.total)||0)-(Number(s.importeMaterial)||0);var fR=fechaRecogidaCascada(s);return [fdtShort(fR), (s.facturaId||''), (s.kg||0), (Number(s.precioKilo)||0).toFixed(2), base.toFixed(2), (Number(s.importeMaterial)||0).toFixed(2), (Number(s.total)||0).toFixed(2), notaPlana(s)];});var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;doc.autoTable({startY:cy+6,head:[['Fecha Recogida','Nº','Kg','€/Kg','Base','Mat','Total','Notas']],body:body,foot:[['','',sumKg.toFixed(1),'','','',sumBase.toFixed(2),'']],styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]}});var y=doc.lastAutoTable.finalY+8;doc.setFontSize(10);doc.text('Base: '+sumBase.toFixed(2)+' €',14,y);y+=6;doc.text('IGIC (7%): '+igic.toFixed(2)+' €',14,y);y+=8;doc.setFontSize(12);doc.text('TOTAL: '+total.toFixed(2)+' €',14,y);y+=8;doc.setFontSize(8);doc.text('Cuenta: '+(empresa.cuenta||''),14,y);doc.save('Factura_'+rec.numero+'.pdf');showToast('✅ PDF descargado: '+rec.numero,'success');}
 
 // ============================================================
-// CAMBIO V9-FINAL-ALBARAN: fechaRecogidaCascada con prioridad albarán firmado
+// CAMBIO V9-FINAL-FIX: fechaRecogidaCascada con prioridad tsRecogido (botón Recoger)
 // ============================================================
 function fechaRecogidaCascada(s){
     if(!s) return null;
-    // 1º Albarán de recogida firmado (fecha REAL física)
+    // 1º tsRecogido (fecha del botón "Recoger" = momento real)
+    if(s.tsRecogido) return s.tsRecogido;
+    // 2º Fallback: albarán de recogida firmado
     for(var i=0;i<albaranes.length;i++){
         if(albaranes[i].servicioId===s.id && albaranes[i].tipo==='recogida' && albaranes[i].fecha){
             return albaranes[i].fecha;
         }
     }
-    // 2º Fallback: botón "Recoger"
-    if(s.tsRecogido) return s.tsRecogido;
     // 3º Último recurso: fecha del pedido
     if(s.fechaRecogida){
         var p=String(s.fechaRecogida).split('-');
@@ -1138,11 +1145,13 @@ function verPedidosCliente(){var box=document.getElementById('pedidosClienteResu
 function exportarPedidosCliente(){if(typeof XLSX==='undefined'){showToast('❌ Excel no cargado','error');return;}var list=filtrarPedidosCliente();if(!list.length){showToast('⚠️ No hay pedidos en ese filtro','error');return;}var data=buildServiciosRows(list);var ws=XLSX.utils.json_to_sheet(data);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Pedidos');XLSX.writeFile(wb,'pedidos_cliente_'+new Date().toISOString().slice(0,10)+'.xlsx');showToast('✅ Excel exportado','success');}
 
 // ============================================================
-// CAMBIO V9-FINAL-ALBARAN: fechaRecogidaInfo con prioridad albarán firmado
+// CAMBIO V9-FINAL-FIX: fechaRecogidaInfo con prioridad tsRecogido (botón Recoger)
 // ============================================================
 function fechaRecogidaInfo(servicioId){
     var s=servicioPorId(servicioId);
-    // 1º Albarán de recogida firmado (fecha REAL física)
+    // 1º tsRecogido (fecha del botón "Recoger" = momento real)
+    if(s&&s.tsRecogido){return {texto:fdt(s.tsRecogido)};}
+    // 2º Fallback: albarán de recogida firmado
     var albRec=null;
     for(var i=0;i<albaranes.length;i++){
         if(albaranes[i].servicioId===servicioId&&albaranes[i].tipo==='recogida'){
@@ -1150,8 +1159,6 @@ function fechaRecogidaInfo(servicioId){
         }
     }
     if(albRec&&albRec.fecha){return {texto:fdt(albRec.fecha)};}
-    // 2º Fallback: botón "Recoger"
-    if(s&&s.tsRecogido){return {texto:fdt(s.tsRecogido)};}
     // 3º Último recurso: fecha del pedido
     if(s&&s.fechaRecogida){return {texto:fmtFecha(s.fechaRecogida)+' (programada)'};}
     return null;
