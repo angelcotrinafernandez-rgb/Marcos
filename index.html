@@ -1348,18 +1348,18 @@ return [nombreCli, fdtShort(fR), fdtShort(s.tsPesado), fdtShort(s.tsEntregado), 
 });
 var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
 var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
-doc.autoTable({startY:startY+6,
+doc.autoTable({startY:startY+6,margin:{top:startY+6},
 head:[['Cliente','F. Rec','F. Pes','F. Ent','Kg','€/Kg','Base','Mat','Total','Notas']],
 body:body,
 foot:[['TOTALES','','','',fkg(sumKg),'','','',fm(sumBase,2),'']],
 styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},
 didDrawPage:function(data){
-if(doc.internal.getNumberOfPages()>1){
+if(data.pageNumber>1){
 dibujarEncabezado();
 }
 }});
 var y=doc.lastAutoTable.finalY+8;
-if(y>270){doc.addPage();dibujarEncabezado();y=90;}
+if(y>270){doc.addPage();dibujarEncabezado();y=startY+6;}
 doc.setFontSize(10);doc.text('Base: '+fp(sumBase),14,y);y+=6;
 doc.text('IGIC (7%): '+fp(igic),14,y);y+=8;
 doc.setFontSize(12);doc.text('TOTAL: '+fp(total),14,y);y+=8;
@@ -1394,18 +1394,18 @@ return [fdtShort(fR), fdtShort(s.tsPesado), fdtShort(s.tsEntregado), (s.facturaI
 });
 var sumKg=0,sumBase=0;lines.forEach(function(s){sumKg+=Number(s.kg)||0;sumBase+=Number(s.total)||0;});
 var igic=igicOf(sumBase);var total=Math.round((sumBase+igic)*100)/100;
-doc.autoTable({startY:startY+6,
+doc.autoTable({startY:startY+6,margin:{top:startY+6},
 head:[['F. Rec','F. Pes','F. Ent','Nº','Kg','€/Kg','Base','Mat','Total','Notas']],
 body:body,
 foot:[['','','','',fkg(sumKg),'','','',fm(sumBase,2),'']],
 styles:{fontSize:8},headStyles:{fillColor:[245,158,11]},footStyles:{fillColor:[26,26,36],textColor:[244,244,245]},
 didDrawPage:function(data){
-if(doc.internal.getNumberOfPages()>1){
+if(data.pageNumber>1){
 dibujarEncabezado();
 }
 }});
 var y=doc.lastAutoTable.finalY+8;
-if(y>270){doc.addPage();dibujarEncabezado();y=90;}
+if(y>270){doc.addPage();dibujarEncabezado();y=startY+6;}
 doc.setFontSize(10);doc.text('Base: '+fp(sumBase),14,y);y+=6;
 doc.text('IGIC (7%): '+fp(igic),14,y);y+=8;
 doc.setFontSize(12);doc.text('TOTAL: '+fp(total),14,y);y+=8;
