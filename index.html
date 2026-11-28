@@ -869,7 +869,26 @@ function syncFail(msg){var b=document.getElementById('syncError');if(!b)return;b
 function clearSyncFail(){var b=document.getElementById('syncError');if(b)b.classList.add('hidden');}
 function igicOf(base){return Math.round((base||0)*0.07*100)/100;}
 function totalConIGIC(base){var b=base||0;return Math.round((b+igicOf(b))*100)/100;}
-function igicPctElegido(s){if(s&&s.facturaId)return (s.igicPct!=null?s.igicPct:null);var e=document.getElementById('pesarIgic');return (e&&Number(e.value)===3)?3:7;}
+
+var FM_SNAP_DESDE=1795882875575;
+function fmSnapLineas(lines){return lines.map(function(s){var o={id:s.id,clienteId:s.clienteId||null,clienteNombre:s.clienteNombre||null,kg:s.kg!=null?s.kg:null,precioKilo:s.precioKilo!=null?s.precioKilo:null,importeMaterial:s.importeMaterial!=null?s.importeMaterial:0,total:Number(s.total)||0,nota:s.nota||null,tsPesado:s.tsPesado||null,tsEntregado:s.tsEntregado||null,facturaId:s.facturaId||null,igicPct:Number(s.igicPct)===3?3:7,fechaRecogida:s.fechaRecogida||null,tsRecogido:s.tsRecogido||fechaRecogidaCascada(s)||null,createdAtLocal:s.createdAtLocal||null};return o;});}
+function fmConSnapshot(rec,key,lines,desde,hasta,cb){
+if(rec&&rec.snapshot&&rec.snapshot.lines&&rec.snapshot.lines.length){var sn=rec.snapshot;cb(sn.lines,sn.desde||desde,sn.hasta||hasta);return;}
+var nuevo=!!rec&&!rec.snapshot&&Number(rec.createdAt)>=FM_SNAP_DESDE;
+if(!nuevo){cb(lines,desde,hasta);return;}
+var sl=fmSnapLineas(lines);var dg=igicDesglose(sl);var sumBase=0;sl.forEach(function(x){sumBase+=x.total;});
+var snap={v:1,creado:Date.now(),desde:desde,hasta:hasta,lines:sl,base:Math.round(sumBase*100)/100,base7:Math.round(dg.base7*100)/100,base3:Math.round(dg.base3*100)/100,igic7:dg.igic7,igic3:dg.igic3,igic:dg.igic,total:Math.round((sumBase+dg.igic)*100)/100};
+db.ref('facturasMensuales/'+key+'/snapshot').set(snap).then(function(){rec.snapshot=snap;cb(sl,desde,hasta);}).catch(function(e){showToast('⚠️ No se pudo guardar la copia de la factura emitida: '+e.message,'error');cb(lines,desde,hasta);});
+}
+function fechaEmisionFM(rec){return new Date(rec&&rec.snapshot&&rec.snapshot.creado?rec.snapshot.creado:Date.now()).toLocaleDateString('es-ES');}
+function servicioCubiertoFM(s){if(!s||['PESADO','ENTREGADO'].indexOf(s.estado)===-1)return false;var fl=(typeof facturasMensuales!=='undefined'&&facturasMensuales)||[];var cl=clientById(s.clienteId)||{};var t=fechaRecogidaCascada(s)||s.tsPesado||s.createdAtLocal;
+for(var i=0;i<fl.length;i++){var r=fl[i];if(!r)continue;var mismo=(r.clientId&&r.clientId===s.clienteId)||(r.nif&&cl.nif&&r.nif===cl.nif);if(!mismo)continue;
+if(r.snapshot&&r.snapshot.lines){for(var j=0;j<r.snapshot.lines.length;j++)if(r.snapshot.lines[j].id===s.id)return true;continue;}
+var pk=String(r.periodoKey||'');var m=pk.match(/^(\d{4})(\d{2})(\d{2})_(\d{4})(\d{2})(\d{2})$/);var a,b;if(m){a=new Date(+m[1],+m[2]-1,+m[3],0,0,0).getTime();b=new Date(+m[4],+m[5]-1,+m[6],23,59,59).getTime();}else{m=pk.match(/^(\d{4})-(\d{2})$/);if(!m)continue;a=new Date(+m[1],+m[2]-1,1,0,0,0).getTime();b=new Date(+m[1],+m[2],0,23,59,59).getTime();}
+if(t>=a&&t<=b)return true;}
+return false;}
+function igicBloqueado(s){return !!(s&&(s.facturaId||servicioCubiertoFM(s)));}
+function igicPctElegido(s){if(igicBloqueado(s)) (s.igicPct!=null?s.igicPct:null);var e=document.getElementById('pesarIgic');return (e&&Number(e.value)===3)?3:7;}
 function esVentaTextil(p){return !!p&&typeof p.tipo==='string'&&(p.tipo.indexOf('Venta de textil')===0||p.tipo==='MANTEL SANTOKU BICOLOR CULLA 023 T.140X140 capet 2CM');}
 function baseVentaTextilDe(s){return (s&&Number(s.igicPct)===3)?(Number(s.total)||0):0;}
 function igicDesglose(list){var b7=0,b3=0;(list||[]).forEach(function(s){var t=Number(s.total)||0;var v=baseVentaTextilDe(s);b3+=v;b7+=(t-v);});var i7=igicOf(b7);var i3=Math.round(Math.round((b3||0)*100)*3/100)/100;return {base7:b7,base3:b3,igic7:i7,igic3:i3,igic:Math.round((i7+i3)*100)/100};}
@@ -1407,8 +1426,8 @@ else{generarPDFMensual(pp.val, pp.tipo, pp.periodoKey, pp.desdeStr, pp.hastaStr)
 }
 function cerrarPreviewFactura(){previewPendiente=null;document.getElementById('facturaPreviewModal').classList.add('hidden');}
 function getServiciosEnRango(clientIds, desdeStr, hastaStr){var desdeTime = new Date(desdeStr+'T00:00:00').getTime();var hastaTime = new Date(hastaStr+'T23:59:59').getTime();return servicios.filter(function(s){if(clientIds && !clientIds[s.clienteId]) return false;if(['PESADO','ENTREGADO'].indexOf(s.estado)===-1) return false;if(!(Number(s.total)||0)>0) return false;var t = fechaRecogidaCascada(s) || s.tsPesado || s.createdAtLocal;return t >= desdeTime && t <= hastaTime;}).sort(function(a,b){return(a.createdAtLocal||0)-(b.createdAtLocal||0);});}
-function generarPDFPorNIF(nif, tipo, periodoKey, desdeStr, hastaStr){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var clientsWithNif=clientes.filter(function(c){return c.nif===nif;});if(!clientsWithNif.length){showToast('⚠️ No hay clientes con ese NIF','error');return;}var clientIds={};clientsWithNif.forEach(function(c){clientIds[c.id]=c;});var lines = getServiciosEnRango(clientIds, desdeStr, hastaStr);if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}ensureFacturaMensualNIF(nif, tipo, periodoKey, function(rec){buildPDFNIF(nif, tipo, periodoKey, desdeStr, hastaStr, lines, clientIds, rec);});}
-function ensureFacturaMensualNIF(nif, tipo, periodoKey, cb){var safeNif=String(nif).replace(/[^a-zA-Z0-9]/g,'_');var key='NIF_'+safeNif+'_'+periodoKey;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec);return;}nextNumeroFactura(tipo, periodoKey, function(num){var newRec={numero:num, tipo:tipo, periodoKey:periodoKey, nif:nif, createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec);});});});}
+function generarPDFPorNIF(nif, tipo, periodoKey, desdeStr, hastaStr){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var clientsWithNif=clientes.filter(function(c){return c.nif===nif;});if(!clientsWithNif.length){showToast('⚠️ No hay clientes con ese NIF','error');return;}var clientIds={};clientsWithNif.forEach(function(c){clientIds[c.id]=c;});var lines = getServiciosEnRango(clientIds, desdeStr, hastaStr);if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}ensureFacturaMensualNIF(nif, tipo, periodoKey, function(rec,key){fmConSnapshot(rec,key,lines,desdeStr,hastaStr,function(L,d,h){buildPDFNIF(nif, tipo, periodoKey, d, h, L, clientIds, rec);});});}
+function ensureFacturaMensualNIF(nif, tipo, periodoKey, cb){var safeNif=String(nif).replace(/[^a-zA-Z0-9]/g,'_');var key='NIF_'+safeNif+'_'+periodoKey;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec,key);return;}nextNumeroFactura(tipo, periodoKey, function(num){var newRec={numero:num, tipo:tipo, periodoKey:periodoKey, nif:nif, createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec,key);});});});}
 function buildPDFNIF(nif, tipo, periodoKey, desdeStr, hastaStr, lines, clientIds, rec){
 var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
 function dibujarEncabezado(){
@@ -1418,7 +1437,7 @@ doc.setFontSize(11);doc.text('Factura '+tipo+' agrupada (por NIF/CIF)',14,38);
 doc.setFontSize(10);
 doc.text('Nº factura: '+rec.numero,14,46);
 doc.text('Periodo: Del '+fmtFecha(desdeStr)+' al '+fmtFecha(hastaStr),14,52);
-doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);
+doc.text('Fecha emisión: '+fechaEmisionFM(rec),14,58);
 doc.text('NIF/CIF cliente: '+nif,14,66);
 var nombresComerciales={};lines.forEach(function(s){var c=clientIds[s.clienteId];if(c){nombresComerciales[c.nombreComercial||c.nombre]=1;}});
 var ncList=Object.keys(nombresComerciales).join(', ');doc.text('Negocios: '+ncList,14,72);
@@ -1456,8 +1475,8 @@ doc.setFontSize(8);doc.text('Cuenta: '+(empresa.cuenta||''),14,y);
 doc.save('Factura_'+rec.numero+'.pdf');
 showToast('✅ PDF agrupado descargado: '+rec.numero,'success');
 }
-function generarPDFMensual(clientId, tipo, periodoKey, desdeStr, hastaStr){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var c=clientById(clientId);if(!c){showToast('⚠️ Cliente no encontrado','error');return;}var lines = getServiciosEnRango(null, desdeStr, hastaStr).filter(function(s){return s.clienteId===clientId;});if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}ensureFacturaMensual(clientId, tipo, periodoKey, function(rec){buildPDF(c, tipo, periodoKey, desdeStr, hastaStr, lines, rec);});}
-function ensureFacturaMensual(clientId, tipo, periodoKey, cb){var key=clientId+'_'+periodoKey;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec);return;}nextNumeroFactura(tipo, periodoKey, function(num){var newRec={numero:num, tipo:tipo, periodoKey:periodoKey, clientId:clientId, createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec);});});});}
+function generarPDFMensual(clientId, tipo, periodoKey, desdeStr, hastaStr){if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('❌ Librería PDF no cargada','error');return;}var c=clientById(clientId);if(!c){showToast('⚠️ Cliente no encontrado','error');return;}var lines = getServiciosEnRango(null, desdeStr, hastaStr).filter(function(s){return s.clienteId===clientId;});if(!lines.length){showToast('⚠️ No hay lavados facturables en ese rango','error');return;}ensureFacturaMensual(clientId, tipo, periodoKey, function(rec,key){fmConSnapshot(rec,key,lines,desdeStr,hastaStr,function(L,d,h){buildPDF(c, tipo, periodoKey, d, h, L, rec);});});}
+function ensureFacturaMensual(clientId, tipo, periodoKey, cb){var key=clientId+'_'+periodoKey;db.ref('facturasMensuales/'+key).once('value').then(function(s){var rec=s.val();if(rec&&rec.numero){cb(rec,key);return;}nextNumeroFactura(tipo, periodoKey, function(num){var newRec={numero:num, tipo:tipo, periodoKey:periodoKey, clientId:clientId, createdAt:Date.now()};db.ref('facturasMensuales/'+key).set(newRec).then(function(){cb(newRec,key);});});});}
 function buildPDF(c, tipo, periodoKey, desdeStr, hastaStr, lines, rec){
 var jsPDF=window.jspdf.jsPDF;var doc=new jsPDF();
 function dibujarEncabezado(){
@@ -1467,7 +1486,7 @@ doc.setFontSize(11);doc.text('Factura '+tipo+' de servicios',14,38);
 doc.setFontSize(10);
 doc.text('Nº factura: '+rec.numero,14,46);
 doc.text('Periodo: Del '+fmtFecha(desdeStr)+' al '+fmtFecha(hastaStr),14,52);
-doc.text('Fecha emisión: '+new Date().toLocaleDateString('es-ES'),14,58);
+doc.text('Fecha emisión: '+fechaEmisionFM(rec),14,58);
 doc.text('Cliente: '+(c.nombre||''),14,66);
 var cy=72;
 if(c.nombreComercial){doc.text('Comercial: '+c.nombreComercial,14,cy);cy+=6;}
@@ -1671,7 +1690,7 @@ else tipoInit='MANUAL';
 document.getElementById('pesarCosteTipo').value=tipoInit;
 if(tipoInit==='MANUAL'){document.getElementById('pesarCosteKg').disabled=false;document.getElementById('pesarCosteKg').value=(s&&s.costeKgAplicado!=null?s.costeKgAplicado:'');}
 onPesarCosteTipoChange();
-var _kr=document.getElementById('pesarKgReales');if(_kr)_kr.value=(s&&s.kgReales!=null)?s.kgReales:'';document.getElementById('pesarNota').value=(s&&s.notaMaterial)||'';var _fp=document.getElementById('pesarFechaPrevista');if(_fp)_fp.value=(s&&s.fechaEntregaPrevista)||'';document.getElementById('pesarPrendaQty').value='1';populatePrendaSelect();renderPrendasList();(function(){var se=document.getElementById('pesarIgic');if(se){var auto=(pesarPrendas||[]).some(function(p){return esVentaTextil(p);});se.value=((s&&s.igicPct!=null)?(Number(s.igicPct)===3):(auto&&!(s&&s.facturaId)))?'3':'7';se.disabled=!!(s&&s.facturaId);se.title=se.disabled?'Servicio ya facturado: el IGIC no se cambia':'';}})();document.getElementById('pesarModal').classList.remove('hidden');updatePesarPreview();}
+var _kr=document.getElementById('pesarKgReales');if(_kr)_kr.value=(s&&s.kgReales!=null)?s.kgReales:'';document.getElementById('pesarNota').value=(s&&s.notaMaterial)||'';var _fp=document.getElementById('pesarFechaPrevista');if(_fp)_fp.value=(s&&s.fechaEntregaPrevista)||'';document.getElementById('pesarPrendaQty').value='1';populatePrendaSelect();renderPrendasList();(function(){var se=document.getElementById('pesarIgic');if(se){var auto=(pesarPrendas||[]).some(function(p){return esVentaTextil(p);});se.value=((s&&s.igicPct!=null)?(Number(s.igicPct)===3):(auto&&!igicBloqueado(s)))?'3':'7';se.disabled=igicBloqueado(s);se.title=se.disabled?'Servicio ya facturado (individual o mensual): el IGIC no se cambia':'';}})();document.getElementById('pesarModal').classList.remove('hidden');updatePesarPreview();}
 function cerrarPesarModal(){pesarPMModo=false;pesarPPModo=false;var _t=document.getElementById('pesarCosteTipo');if(_t)_t.disabled=false;document.getElementById('pesarModal').classList.add('hidden');pesarServicioId=null;pesarPrendas=[];pesarEditMode=false;}
 var pesarPMModo=false;var pesarPPModo=false;var pesarCosteKgGuardado='';
 function pesoMinimoAplica(s){return !!s&&s.pesoMinimoV1===true;}
